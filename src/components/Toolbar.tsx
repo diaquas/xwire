@@ -348,7 +348,7 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
         // Create 4 Differential boards (UI layer) - each board contains 4 ports
         // Board 1: ports 1-4, Board 2: ports 5-8, Board 3: ports 9-12, Board 4: ports 13-16
         const boardCount = 4;
-        const boardSpacing = 600; // Much wider spacing between boards
+        const boardSpacing = 1200; // Very wide spacing to fit receiver columns below each board
         const boardStartX = centerX - ((boardCount - 1) * boardSpacing) / 2;
         const boardY = centerY + 300;
 
