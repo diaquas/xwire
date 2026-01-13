@@ -434,167 +434,149 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
   };
 
   // Helper function to group models into receivers using xLights port assignments
-  // Uses Port and SmartRemote attributes from rgbeffects file
-  const createReceiversFromModels = (models: any[]) => {
-    if (models.length === 0) return [];
+// Logic: Every 4 consecutive xLights ports = 1 receiver group
+// If a group has SmartRemote 2 models, create an additional daisy-chained receiver
+const createReceiversFromModels = (models: any[]) => {
+  if (models.length === 0) return [];
 
-    // Filter out models without valid start channels
-    const validModels = models.filter(m => m.startChannel !== null && m.startChannel > 0);
+  // Filter out models without valid start channels
+  const validModels = models.filter(m => m.startChannel !== null && m.startChannel > 0);
 
-    if (validModels.length === 0) {
-      console.warn('No models with valid start channels found');
-      return [];
+  if (validModels.length === 0) {
+    console.warn('No models with valid start channels found');
+    return [];
+  }
+
+  console.log(`\n=== RECEIVER GROUPING (4 Ports Per Receiver) ===`);
+  console.log(`Total models: ${validModels.length}`);
+
+  // Group models by xLights port number
+  const modelsByPort: { [port: number]: any[] } = {};
+  validModels.forEach(model => {
+    if (model.port !== null && model.port !== undefined) {
+      if (!modelsByPort[model.port]) {
+        modelsByPort[model.port] = [];
+      }
+      modelsByPort[model.port].push(model);
+    }
+  });
+
+  const usedPorts = Object.keys(modelsByPort).map(p => parseInt(p)).sort((a, b) => a - b);
+  const maxPort = Math.max(...usedPorts);
+
+  console.log(`xLights ports in use: ${usedPorts.length} (from port ${usedPorts[0]} to ${maxPort})`);
+
+  // Group ports into receiver groups (every 4 ports = 1 group)
+  // Ports 1-4 = Group 1, Ports 5-8 = Group 2, etc.
+  const receiverGroupCount = Math.ceil(maxPort / 4);
+
+  console.log(`\nGrouping into ${receiverGroupCount} receiver groups (4 ports each):\n`);
+
+  const receivers: any[] = [];
+  const maxPixelsPerPort = 1024;
+
+  for (let groupIdx = 0; groupIdx < receiverGroupCount; groupIdx++) {
+    const groupStartPort = groupIdx * 4 + 1;
+    const groupEndPort = groupStartPort + 3;
+
+    // Check which ports in this group have models
+    const portsInGroup = [];
+    let hasSmartRemote1 = false;
+    let hasSmartRemote2 = false;
+
+    for (let port = groupStartPort; port <= groupEndPort; port++) {
+      if (modelsByPort[port]) {
+        portsInGroup.push(port);
+
+        // Check SmartRemote values
+        modelsByPort[port].forEach(model => {
+          if (model.smartRemote === 1) hasSmartRemote1 = true;
+          if (model.smartRemote === 2) hasSmartRemote2 = true;
+        });
+      }
     }
 
-    console.log(`\n=== RECEIVER GROUPING (xLights Port Mapping) ===`);
-    console.log(`Total models: ${validModels.length}`);
+    // Skip groups with no models
+    if (portsInGroup.length === 0) continue;
 
-    // First, let's see what Port/SmartRemote values we have
-    const portStats: { [key: string]: number } = {};
-    validModels.forEach(model => {
-      const key = `Port=${model.port ?? 'null'}, Smart=${model.smartRemote ?? 'null'}`;
-      portStats[key] = (portStats[key] || 0) + 1;
-    });
-    console.log('\nPort/SmartRemote distribution across models:');
-    Object.keys(portStats).sort().forEach(key => {
-      console.log(`  ${key}: ${portStats[key]} models`);
-    });
+    console.log(`Group ${groupIdx + 1} (Ports ${groupStartPort}-${groupEndPort}): ${portsInGroup.length} ports used`);
+    console.log(`  SmartRemote 1: ${hasSmartRemote1 ? 'Yes' : 'No'}, SmartRemote 2: ${hasSmartRemote2 ? 'Yes' : 'No'}`);
 
-    // Group models by (Differential Port, SmartRemote) - each unique combination = 1 receiver
-    // xLights Port numbers (1-171) map to 16 differential ports via: ((port - 1) % 16) + 1
-    // Only include models that have BOTH port and smartRemote defined
-    const receiverGroups: { [key: string]: any[] } = {};
-    const NUM_DIFFERENTIAL_PORTS = 16;
+    // Create receivers for this group
+    const smartRemotes = [];
+    if (hasSmartRemote1) smartRemotes.push(1);
+    if (hasSmartRemote2) smartRemotes.push(2);
 
-    validModels.forEach(model => {
-      // Skip models without port/smartRemote info
-      if (model.port === null || model.port === undefined || model.smartRemote === null || model.smartRemote === undefined) {
-        console.warn(`  Skipping model "${model.name}" - missing port (${model.port}) or smartRemote (${model.smartRemote})`);
-        return;
+    smartRemotes.forEach(smartRemote => {
+      const receiverNumber = receivers.length + 1;
+
+      // Get first model for universe calculation
+      let firstModel = null;
+      for (let port = groupStartPort; port <= groupEndPort && !firstModel; port++) {
+        if (modelsByPort[port]) {
+          const modelsInPort = modelsByPort[port].filter(m => m.smartRemote === smartRemote);
+          if (modelsInPort.length > 0) {
+            firstModel = modelsInPort[0];
+          }
+        }
       }
 
-      // Map xLights port to differential port (1-16)
-      const differentialPort = ((model.port - 1) % NUM_DIFFERENTIAL_PORTS) + 1;
-      const key = `${differentialPort}-${model.smartRemote}`;
-
-      if (!receiverGroups[key]) {
-        receiverGroups[key] = [];
-      }
-      receiverGroups[key].push(model);
-    });
-
-    console.log('\nMapping xLights ports to differential ports (modulo 16):');
-    const portMapping: { [xlPort: number]: number } = {};
-    validModels.forEach(model => {
-      if (model.port && !portMapping[model.port]) {
-        const diffPort = ((model.port - 1) % NUM_DIFFERENTIAL_PORTS) + 1;
-        portMapping[model.port] = diffPort;
-      }
-    });
-    Object.keys(portMapping).sort((a, b) => parseInt(a) - parseInt(b)).forEach(xlPort => {
-      console.log(`  xLights Port ${xlPort} → Differential Port ${portMapping[parseInt(xlPort)]}`);
-    });
-
-    // Sort receiver keys for consistent ordering
-    const sortedKeys = Object.keys(receiverGroups).sort((a, b) => {
-      const [portA, remoteA] = a.split('-').map(n => parseInt(n));
-      const [portB, remoteB] = b.split('-').map(n => parseInt(n));
-      // Sort by port first, then by smartRemote
-      if (portA !== portB) return portA - portB;
-      return remoteA - remoteB;
-    });
-
-    console.log(`\nFound ${sortedKeys.length} unique receivers (Differential Port - SmartRemote combinations):`);
-    sortedKeys.forEach(key => {
-      const [diffPort, remote] = key.split('-');
-      const modelCount = receiverGroups[key].length;
-      const totalPixels = receiverGroups[key].reduce((sum, m) => sum + (m.pixelCount || 0), 0);
-      console.log(`  Differential Port ${diffPort}, SmartRemote ${remote}: ${modelCount} models, ${totalPixels}px`);
-    });
-
-    // Create receivers and distribute models into 4 ports per receiver
-    const receivers: any[] = [];
-    const maxPixelsPerPort = 1024;
-
-    sortedKeys.forEach((key, idx) => {
-      const [differentialPortStr, smartRemoteStr] = key.split('-');
-      const differentialPort = parseInt(differentialPortStr);
-      const smartRemote = parseInt(smartRemoteStr);
-      const receiverModels = receiverGroups[key];
-      const receiverNumber = idx + 1;
-
-      // Calculate universe from first model's start channel
-      const firstModel = receiverModels[0];
-      const universe = Math.floor((firstModel.startChannel - 1) / 510) + 1;
+      const universe = firstModel ? Math.floor((firstModel.startChannel - 1) / 510) + 1 : 1;
 
       const receiver: any = {
         name: `Receiver ${receiverNumber}`,
-        dipSwitch: String(idx).padStart(4, '0'),
+        dipSwitch: String(receivers.length).padStart(4, '0'),
         universe: universe,
-        differentialPort: differentialPort,
+        xlPortStart: groupStartPort,
+        xlPortEnd: groupEndPort,
         smartRemote: smartRemote,
         ports: [
-          { id: `p1-${receiverNumber}`, name: 'Port 1', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
-          { id: `p2-${receiverNumber}`, name: 'Port 2', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
-          { id: `p3-${receiverNumber}`, name: 'Port 3', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
-          { id: `p4-${receiverNumber}`, name: 'Port 4', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
+          { id: `p1-${receiverNumber}`, name: 'Port 1', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [], xlPort: groupStartPort },
+          { id: `p2-${receiverNumber}`, name: 'Port 2', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [], xlPort: groupStartPort + 1 },
+          { id: `p3-${receiverNumber}`, name: 'Port 3', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [], xlPort: groupStartPort + 2 },
+          { id: `p4-${receiverNumber}`, name: 'Port 4', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [], xlPort: groupStartPort + 3 },
         ],
       };
 
-      // Sort models by start channel to maintain order
-      const sortedModels = receiverModels.sort((a, b) => a.startChannel - b.startChannel);
+      // Distribute models into the 4 ports based on their xLights port number
+      for (let portIdx = 0; portIdx < 4; portIdx++) {
+        const xlPort = groupStartPort + portIdx;
+        const receiverPort = receiver.ports[portIdx];
 
-      // Pack models sequentially into the 4 receiver ports
-      let currentPortIdx = 0;
-      sortedModels.forEach(model => {
-        const pixels = model.pixelCount || 0;
-        const currentPort = receiver.ports[currentPortIdx];
+        if (modelsByPort[xlPort]) {
+          const modelsForThisReceiver = modelsByPort[xlPort]
+            .filter(m => m.smartRemote === smartRemote)
+            .sort((a, b) => a.startChannel - b.startChannel);
 
-        // If model fits in current port, add it
-        if (currentPort.currentPixels + pixels <= maxPixelsPerPort) {
-          currentPort.models.push({
-            name: model.name,
-            pixels: pixels,
+          modelsForThisReceiver.forEach(model => {
+            receiverPort.models.push({
+              name: model.name,
+              pixels: model.pixelCount || 0,
+            });
+            receiverPort.currentPixels += model.pixelCount || 0;
           });
-          currentPort.currentPixels += pixels;
-        } else {
-          // Move to next port if available
-          if (currentPortIdx < 3) {
-            currentPortIdx++;
-            const nextPort = receiver.ports[currentPortIdx];
-            nextPort.models.push({
-              name: model.name,
-              pixels: pixels,
-            });
-            nextPort.currentPixels += pixels;
-          } else {
-            // All 4 ports full, add to last port anyway (overflow)
-            console.warn(`  WARNING: Receiver ${receiverNumber} port 4 exceeds capacity! Adding ${model.name} anyway.`);
-            currentPort.models.push({
-              name: model.name,
-              pixels: pixels,
-            });
-            currentPort.currentPixels += pixels;
-          }
         }
-      });
+      }
 
-      console.log(`\n  Receiver ${receiverNumber} (Diff Port ${differentialPort}, Smart ${smartRemote}):`);
+      console.log(`  → Receiver ${receiverNumber} (SmartRemote ${smartRemote}):`);
       receiver.ports.forEach((port: any, pIdx: number) => {
         if (port.models.length > 0) {
           const utilization = ((port.currentPixels / maxPixelsPerPort) * 100).toFixed(1);
-          console.log(`    Port ${pIdx + 1}: ${port.models.length} models, ${port.currentPixels}px (${utilization}% full)`);
+          console.log(`      Port ${pIdx + 1} (xL Port ${port.xlPort}): ${port.models.length} models, ${port.currentPixels}px (${utilization}% full)`);
         }
       });
 
       receivers.push(receiver);
     });
 
-    console.log(`\nTotal receivers created: ${receivers.length}`);
-    console.log('======================\n');
+    console.log(`  Created ${smartRemotes.length} receiver(s) for this group\n`);
+  }
 
-    return receivers;
-  };
+  console.log(`\nTotal receivers created: ${receivers.length}`);
+  console.log('======================\n');
+
+  return receivers;
+};
 
   return (
     <div
