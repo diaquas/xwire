@@ -450,11 +450,15 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
             differentialPort.connectedReceivers.push(receiverId);
 
             if (chainIdx === 0) {
-              // First receiver: connect from differential board (no label)
+              // First receiver: connect from differential board's specific port handle
+              // Calculate which port within the board (1-4)
+              const portWithinBoard = ((differentialPortNumber - 1) % 4) + 1;
+              const portHandleId = `port-${portWithinBoard}`;
+
               addWire({
                 id: `wire-board-rec-${timestamp}-${differentialPortNumber}-${chainIdx}`,
                 color: 'blue',
-                from: { nodeId: board.id },
+                from: { nodeId: board.id, portId: portHandleId },
                 to: { nodeId: receiverId, portId: 'receiver-input' },
                 label: '',
               });

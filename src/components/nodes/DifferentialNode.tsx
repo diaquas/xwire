@@ -80,6 +80,10 @@ export const DifferentialNode = memo(({ data }: NodeProps<DifferentialNodeData>)
           const isOverCapacity = totalPixels > totalMaxPixels;
           const hasReceivers = port.connectedReceivers.length > 0;
 
+          // Calculate port position within board (1-4)
+          const portWithinBoard = ((port.portNumber - 1) % 4) + 1;
+          const portHandleId = `port-${portWithinBoard}`;
+
           return (
             <div
               key={port.id}
@@ -121,22 +125,25 @@ export const DifferentialNode = memo(({ data }: NodeProps<DifferentialNodeData>)
                   border: `2px solid ${isOverCapacity ? '#FC8181' : '#805AD5'}`,
                   background: hasReceivers ? '#3182CE' : 'white',
                   borderRadius: '3px',
+                  position: 'relative',
                 }}
-              />
+              >
+                {/* Individual handle for this port */}
+                <Handle
+                  type="source"
+                  position={Position.Bottom}
+                  id={portHandleId}
+                  style={{
+                    opacity: 0,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    bottom: '-4px',
+                  }}
+                />
+              </div>
             </div>
           );
         })}
-        {/* Single centered output handle */}
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          id="diff-board-output"
-          style={{
-            opacity: 0,
-            left: '50%',
-            transform: 'translateX(-50%)',
-          }}
-        />
       </div>
     </div>
   );
