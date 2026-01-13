@@ -433,8 +433,8 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
     });
   };
 
-  // Helper function to group models into receivers based on xLights universe assignments
-  // In HinksPix: every 4 universes = 1 receiver (4 ports per receiver)
+  // Helper function to group models into receivers using sequential packing
+  // Packs universes sequentially into receiver ports, respecting 1024px per port limit
   const createReceiversFromModels = (models: any[]) => {
     if (models.length === 0) return [];
 
@@ -446,7 +446,7 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
       return [];
     }
 
-    // Group models by universe - xLights already determined the port assignments
+    // Group models by universe
     const modelsByUniverse: { [universe: number]: any[] } = {};
     validModels.forEach(model => {
       const universe = Math.floor((model.startChannel - 1) / 510) + 1;
@@ -456,74 +456,110 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
       modelsByUniverse[universe].push(model);
     });
 
-    console.log(`\n=== RECEIVER GROUPING (xLights-based) ===`);
-    console.log(`Total universes with models: ${Object.keys(modelsByUniverse).length}`);
+    // Calculate total pixels per universe
+    const universePixels: { [universe: number]: number } = {};
+    Object.keys(modelsByUniverse).forEach(u => {
+      const universe = parseInt(u);
+      universePixels[universe] = modelsByUniverse[universe].reduce((sum, m) => sum + (m.pixelCount || 0), 0);
+    });
 
-    // Group universes into receivers
-    // Every 4 consecutive universes = 1 receiver (4 ports per receiver)
-    const receivers: any[] = [];
-    const maxPixelsPerPort = 1024;
+    // Sort universes in order
     const universes = Object.keys(modelsByUniverse).map(u => parseInt(u)).sort((a, b) => a - b);
 
-    // Find the max universe number to determine how many receivers we need
-    const maxUniverse = Math.max(...universes);
-    const totalReceivers = Math.ceil(maxUniverse / 4);
+    console.log(`\n=== RECEIVER GROUPING (Sequential Packing) ===`);
+    console.log(`Total universes with models: ${universes.length}`);
 
-    console.log(`Max universe: ${maxUniverse}, creating ${totalReceivers} receivers\n`);
+    // Pack universes sequentially into receivers
+    const receivers: any[] = [];
+    const maxPixelsPerPort = 1024;
 
-    // Create receivers based on universe grouping
-    for (let receiverIdx = 0; receiverIdx < totalReceivers; receiverIdx++) {
-      const receiverNumber = receiverIdx + 1;
-      const receiver: any = {
-        name: `Receiver ${receiverNumber}`,
-        dipSwitch: String(receiverIdx).padStart(4, '0'),
-        universe: null, // Will be set to first port's universe
-        ports: [
-          { id: `p1-${receiverNumber}`, name: 'Port 1', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
-          { id: `p2-${receiverNumber}`, name: 'Port 2', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
-          { id: `p3-${receiverNumber}`, name: 'Port 3', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
-          { id: `p4-${receiverNumber}`, name: 'Port 4', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
-        ],
-      };
+    let currentReceiver: any = null;
+    let currentPortIdx = 0;
 
-      // Assign models to ports based on universe
-      // Universe (receiverIdx*4)+1 → Port 1
-      // Universe (receiverIdx*4)+2 → Port 2
-      // Universe (receiverIdx*4)+3 → Port 3
-      // Universe (receiverIdx*4)+4 → Port 4
-      for (let portIdx = 0; portIdx < 4; portIdx++) {
-        const universeForPort = (receiverIdx * 4) + portIdx + 1;
-        const port = receiver.ports[portIdx];
+    universes.forEach(universe => {
+      const pixels = universePixels[universe];
+      const models = modelsByUniverse[universe];
 
-        if (modelsByUniverse[universeForPort]) {
-          const universeModels = modelsByUniverse[universeForPort].sort((a, b) => a.startChannel - b.startChannel);
-          const totalPixels = universeModels.reduce((sum, m) => sum + (m.pixelCount || 0), 0);
-
-          // Set receiver's universe to the first port with models
-          if (receiver.universe === null) {
-            receiver.universe = universeForPort;
-          }
-
-          // Add all models from this universe to this port
-          universeModels.forEach(model => {
-            port.models.push({
-              name: model.name,
-              pixels: model.pixelCount || 0,
-            });
-            port.currentPixels += model.pixelCount || 0;
-          });
-
-          console.log(`  Receiver ${receiverNumber}, Port ${portIdx + 1} (Universe ${universeForPort}): ${universeModels.length} models, ${totalPixels}px`);
+      // Check if we need a new receiver (first time or all 4 ports used)
+      if (!currentReceiver || currentPortIdx >= 4) {
+        if (currentReceiver) {
+          receivers.push(currentReceiver);
         }
+
+        const receiverNumber = receivers.length + 1;
+        currentReceiver = {
+          name: `Receiver ${receiverNumber}`,
+          dipSwitch: String(receivers.length).padStart(4, '0'),
+          universe: universe, // First universe assigned to this receiver
+          ports: [
+            { id: `p1-${receiverNumber}`, name: 'Port 1', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [], universes: [] },
+            { id: `p2-${receiverNumber}`, name: 'Port 2', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [], universes: [] },
+            { id: `p3-${receiverNumber}`, name: 'Port 3', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [], universes: [] },
+            { id: `p4-${receiverNumber}`, name: 'Port 4', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [], universes: [] },
+          ],
+        };
+        currentPortIdx = 0;
       }
 
-      // Only add receiver if it has at least one model
-      if (receiver.ports.some((p: any) => p.models.length > 0)) {
-        receivers.push(receiver);
+      const currentPort = currentReceiver.ports[currentPortIdx];
+
+      // Check if this universe fits in the current port
+      if (currentPort.currentPixels + pixels <= maxPixelsPerPort) {
+        // Add to current port
+        models.forEach(model => {
+          currentPort.models.push({
+            name: model.name,
+            pixels: model.pixelCount || 0,
+          });
+          currentPort.currentPixels += model.pixelCount || 0;
+        });
+        currentPort.universes.push(universe);
+
+        console.log(`  Receiver ${receivers.length + 1}, Port ${currentPortIdx + 1}: Added Universe ${universe} (${pixels}px, total: ${currentPort.currentPixels}px)`);
+      } else {
+        // Current port is full, move to next port
+        currentPortIdx++;
+
+        // Check if we need a new receiver
+        if (currentPortIdx >= 4) {
+          receivers.push(currentReceiver);
+
+          const receiverNumber = receivers.length + 1;
+          currentReceiver = {
+            name: `Receiver ${receiverNumber}`,
+            dipSwitch: String(receivers.length).padStart(4, '0'),
+            universe: universe,
+            ports: [
+              { id: `p1-${receiverNumber}`, name: 'Port 1', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [], universes: [] },
+              { id: `p2-${receiverNumber}`, name: 'Port 2', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [], universes: [] },
+              { id: `p3-${receiverNumber}`, name: 'Port 3', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [], universes: [] },
+              { id: `p4-${receiverNumber}`, name: 'Port 4', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [], universes: [] },
+            ],
+          };
+          currentPortIdx = 0;
+        }
+
+        // Add to new current port
+        const newPort = currentReceiver.ports[currentPortIdx];
+        models.forEach(model => {
+          newPort.models.push({
+            name: model.name,
+            pixels: model.pixelCount || 0,
+          });
+          newPort.currentPixels += model.pixelCount || 0;
+        });
+        newPort.universes.push(universe);
+
+        console.log(`  Receiver ${receivers.length + 1}, Port ${currentPortIdx + 1}: Added Universe ${universe} (${pixels}px, total: ${newPort.currentPixels}px)`);
       }
+    });
+
+    // Add the last receiver
+    if (currentReceiver) {
+      receivers.push(currentReceiver);
     }
 
-    console.log(`\nTotal receivers with models: ${receivers.length}`);
+    console.log(`\nTotal receivers created: ${receivers.length}`);
     console.log('======================\n');
 
     return receivers;
