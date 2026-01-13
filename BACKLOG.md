@@ -147,7 +147,24 @@
 
 ---
 
-### Issue #16: Configurable Differential Port Count
+### GitHub Issue #16: Receiver Renaming with Hierarchy
+**Status:** ✅ COMPLETED (2026-01-13)
+**Priority:** High
+**Description:** Enable users to edit and save custom names for receivers while retaining hierarchical identifier.
+
+**Solution Implemented:**
+- Added `customName` field to Receiver type for user-editable names
+- Double-click on receiver name to edit inline
+- Enter to save, Escape to cancel
+- Displays customName if set, otherwise shows default generated name
+- Added hierarchy subtitle showing "Differential > DIP Switch" path
+- Changed port labels from A,B,C,D to 1,2,3,4 for more intuitive numbering
+- Added `differentialConnection` field to track which differential connects to receiver
+- Hierarchy helps identify connection topology at a glance
+
+---
+
+### Issue #16 (Backlog): Configurable Differential Port Count
 **Status:** 🟢 To Do
 **Priority:** Medium
 **Description:** Allow users to configure how many differential ports their controller setup has.
@@ -298,6 +315,9 @@ Delete key removes selected nodes and connected wires - **DONE** (2026-01-13)
 ### ✓ Issue #8: Port Pixel Tracking
 Receiver ports show pixel budgets with color-coded warnings - **DONE** (2026-01-13)
 
+### ✓ GitHub Issue #16: Receiver Renaming with Hierarchy
+Double-click to rename receivers with hierarchy subtitle - **DONE** (2026-01-13)
+
 ---
 
 ## Next Steps
@@ -340,8 +360,14 @@ Receiver ports show pixel budgets with color-coded warnings - **DONE** (2026-01-
    - Delete key removes selected nodes
    - Automatic cleanup of connected wires
    - Works for all component types
+8. Implemented GitHub Issue #16: Receiver renaming with hierarchy
+   - Changed port labels from A,B,C,D to 1,2,3,4 for better usability
+   - Added double-click to rename receivers inline
+   - Displays hierarchy subtitle showing "Differential > DIP Switch" path
+   - Added customName field for user-editable names
+   - Links receivers to their connected differentials for topology tracking
 
 🎯 **Next recommended tasks:**
-- Issue #2: Property editing for nodes
+- Issue #2: Property editing for nodes (controllers, other components)
 - Issue #6: DIP switch configuration UI
 - Bug #1: Node positioning improvements
