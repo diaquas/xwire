@@ -1,6 +1,7 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Receiver } from '../../types/diagram';
+import { useDiagramStore } from '../../store/diagramStore';
 
 interface ReceiverNodeData {
   receiver: Receiver;
@@ -8,6 +9,42 @@ interface ReceiverNodeData {
 
 export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
   const { receiver } = data;
+  const { updateReceiver, differentials } = useDiagramStore();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(receiver.customName || '');
+
+  // Find connected differential for hierarchy display
+  const connectedDifferential = receiver.differentialConnection
+    ? differentials.find(d => d.id === receiver.differentialConnection)
+    : null;
+
+  // Build hierarchy subtitle
+  const hierarchyText = connectedDifferential
+    ? `${connectedDifferential.name} > DIP ${receiver.dipSwitch}`
+    : `DIP ${receiver.dipSwitch}`;
+
+  const displayName = receiver.customName || receiver.name;
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditValue(receiver.customName || '');
+    setIsEditing(true);
+  };
+
+  const handleBlur = () => {
+    if (editValue.trim() !== '') {
+      updateReceiver(receiver.id, { customName: editValue.trim() });
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleBlur();
+    } else if (e.key === 'Escape') {
+      setIsEditing(false);
+    }
+  };
 
   return (
     <div
@@ -25,26 +62,55 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
       <Handle type="source" position={Position.Bottom} />
       <Handle type="target" position={Position.Top} />
 
-      <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#22543D' }}>
-        {receiver.name}
-      </div>
-
-      {receiver.dipSwitch && (
+      {/* Receiver name - editable on double-click */}
+      {isEditing ? (
+        <input
+          type="text"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          style={{
+            width: '100%',
+            fontWeight: 'bold',
+            marginBottom: '4px',
+            color: '#22543D',
+            border: '2px solid #48BB78',
+            borderRadius: '4px',
+            padding: '2px 4px',
+            fontSize: '14px',
+          }}
+        />
+      ) : (
         <div
           style={{
-            fontSize: '12px',
-            color: 'white',
-            marginBottom: '8px',
-            background: '#2F855A',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            textAlign: 'center',
             fontWeight: 'bold',
+            marginBottom: '2px',
+            color: '#22543D',
+            cursor: 'pointer',
+            fontSize: '14px',
           }}
+          onDoubleClick={handleDoubleClick}
+          title="Double-click to rename"
         >
-          DIP Switch: {receiver.dipSwitch}
+          {displayName}
         </div>
       )}
+
+      {/* Hierarchy subtitle */}
+      <div
+        style={{
+          fontSize: '10px',
+          color: '#2F855A',
+          marginBottom: '8px',
+          fontStyle: 'italic',
+          borderBottom: '1px solid #9AE6B4',
+          paddingBottom: '4px',
+        }}
+      >
+        {hierarchyText}
+      </div>
 
       {receiver.ports.length > 0 && (
         <div style={{ fontSize: '10px' }}>

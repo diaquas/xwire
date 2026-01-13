@@ -83,22 +83,18 @@
 
 ---
 
-### Issue #5: Node Deletion
-**Status:** 🟡 To Do
+### Issue #5: Node Deletion (GitHub Issue #3)
+**Status:** ✅ COMPLETED (2026-01-13)
 **Priority:** High
 **Description:** Need ability to delete nodes from diagram.
 
-**Expected Behavior:**
-- Press Delete key when node selected
-- Or right-click → Delete
-- Or button in property panel
-- Remove node and all connected wires
-- Confirm before deleting
-
-**Implementation:**
-- Add keyboard event handler
-- Call store's `removeController`, `removeReceiver`, etc.
-- Wire removal handled automatically by store
+**Solution Implemented:**
+- Press Delete key when node selected to remove it
+- Implemented onNodesDelete callback in DiagramCanvas
+- Implemented onEdgesDelete callback for wire deletion
+- Remove node and all connected wires automatically
+- Supports deletion of all component types: controllers, receivers, differentials, ethernet switches, power supplies, labels, and wires
+- No confirmation dialog (can be added later if needed)
 
 ---
 
@@ -151,7 +147,24 @@
 
 ---
 
-### Issue #16: Configurable Differential Port Count
+### GitHub Issue #16: Receiver Renaming with Hierarchy
+**Status:** ✅ COMPLETED (2026-01-13)
+**Priority:** High
+**Description:** Enable users to edit and save custom names for receivers while retaining hierarchical identifier.
+
+**Solution Implemented:**
+- Added `customName` field to Receiver type for user-editable names
+- Double-click on receiver name to edit inline
+- Enter to save, Escape to cancel
+- Displays customName if set, otherwise shows default generated name
+- Added hierarchy subtitle showing "Differential > DIP Switch" path
+- Changed port labels from A,B,C,D to 1,2,3,4 for more intuitive numbering
+- Added `differentialConnection` field to track which differential connects to receiver
+- Hierarchy helps identify connection topology at a glance
+
+---
+
+### Issue #16 (Backlog): Configurable Differential Port Count
 **Status:** 🟢 To Do
 **Priority:** Medium
 **Description:** Allow users to configure how many differential ports their controller setup has.
@@ -296,6 +309,15 @@ Wire colors (red/black/blue) now work correctly - **DONE** (2026-01-13)
 ### ✓ Issue #4: Import Controllers from xLights
 Auto-import controllers with proper names, types, and ports - **DONE** (2026-01-13)
 
+### ✓ Issue #5: Node Deletion (GitHub Issue #3)
+Delete key removes selected nodes and connected wires - **DONE** (2026-01-13)
+
+### ✓ Issue #8: Port Pixel Tracking
+Receiver ports show pixel budgets with color-coded warnings - **DONE** (2026-01-13)
+
+### ✓ GitHub Issue #16: Receiver Renaming with Hierarchy
+Double-click to rename receivers with hierarchy subtitle - **DONE** (2026-01-13)
+
 ---
 
 ## Next Steps
@@ -305,9 +327,9 @@ Auto-import controllers with proper names, types, and ports - **DONE** (2026-01-
 1. ✅ ~~**Fix Issue #1** - Get xLights parser working~~ **COMPLETED**
 2. ✅ ~~**Fix Issue #3** - Wire color selection~~ **COMPLETED**
 3. ✅ ~~**Implement Issue #4** - Import from xLights~~ **COMPLETED**
-4. **Implement Issue #2** - Property editing (needed for editing imported controllers)
-5. **Fix Bug #1** - Node positioning (UX improvement)
-6. **Implement Issue #5** - Node deletion (basic functionality)
+4. ✅ ~~**Implement Issue #5** - Node deletion (basic functionality)~~ **COMPLETED**
+5. **Implement Issue #2** - Property editing (needed for editing imported controllers)
+6. **Fix Bug #1** - Node positioning (UX improvement)
 7. **Implement Issue #6** - DIP switch UI (important for receivers)
 8. Continue with medium/low priority items
 
@@ -321,13 +343,31 @@ Auto-import controllers with proper names, types, and ports - **DONE** (2026-01-
 1. Fixed xLights XML parser to handle lowercase `<network>` elements
 2. Implemented wire color selection (red/black/blue)
 3. Implemented automatic controller import from xLights with proper names, types, and port configurations
-4. Fixed Issue #7: Improved controller visualization with compact/hierarchical display
-   - Controllers with >8 ports show compact summary (e.g., "171 Ports • 0/29070 px")
-   - Expandable view to see all ports
-   - Port numbers now display as "Port 1", "Port 2" instead of "Universe 200", "Universe 201"
-   - Much cleaner UI for controllers with many ports
+4. Fixed Issue #7: Improved HinksPix visualization with proper differential architecture
+   - HinksPix shows "16 Differential Outputs" instead of 171 universe ports
+   - Added Differential and Ethernet Switch components
+   - Hardcoded differential count with backlog item for future configurability
+5. Implemented Issue #8: Port pixel tracking with budget warnings
+   - Receiver ports show current/max pixel usage (red/orange/green color coding)
+   - Shows individual models per port with pixel counts
+   - Displays available pixels remaining
+6. Implemented automatic model import with spider web topology
+   - Controller in center, differentials in circle, receivers in outer circle
+   - Models automatically assigned to receiver ports with stacking support
+   - Blue wires connecting everything (Ribbon, CAT5)
+   - Updated receiver port budget from 512 to 1024 pixels (HinksPix v3)
+7. Implemented Issue #5 (GitHub Issue #3): Component deletion
+   - Delete key removes selected nodes
+   - Automatic cleanup of connected wires
+   - Works for all component types
+8. Implemented GitHub Issue #16: Receiver renaming with hierarchy
+   - Changed port labels from A,B,C,D to 1,2,3,4 for better usability
+   - Added double-click to rename receivers inline
+   - Displays hierarchy subtitle showing "Differential > DIP Switch" path
+   - Added customName field for user-editable names
+   - Links receivers to their connected differentials for topology tracking
 
 🎯 **Next recommended tasks:**
-- Issue #2: Property editing for nodes
-- Issue #5: Node deletion functionality
+- Issue #2: Property editing for nodes (controllers, other components)
 - Issue #6: DIP switch configuration UI
+- Bug #1: Node positioning improvements

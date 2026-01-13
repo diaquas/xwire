@@ -48,10 +48,10 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
       name: 'New Receiver',
       dipSwitch: '0000',
       ports: [
-        { id: 'pA', name: 'Port A', maxPixels: 1024, currentPixels: 0 },
-        { id: 'pB', name: 'Port B', maxPixels: 1024, currentPixels: 0 },
-        { id: 'pC', name: 'Port C', maxPixels: 1024, currentPixels: 0 },
-        { id: 'pD', name: 'Port D', maxPixels: 1024, currentPixels: 0 },
+        { id: 'p1', name: 'Port 1', maxPixels: 1024, currentPixels: 0 },
+        { id: 'p2', name: 'Port 2', maxPixels: 1024, currentPixels: 0 },
+        { id: 'p3', name: 'Port 3', maxPixels: 1024, currentPixels: 0 },
+        { id: 'p4', name: 'Port 4', maxPixels: 1024, currentPixels: 0 },
       ],
       position: { x: 100, y: 300 },
     };
@@ -311,6 +311,9 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
           const recX = centerX + receiverRadius * Math.cos(angle);
           const recY = centerY + receiverRadius * Math.sin(angle);
 
+          // Connect receiver to nearest differential
+          const nearestDiff = differentials[idx % differentials.length];
+
           const receiverId = `receiver-${Date.now()}-${idx}`;
           const receiver: Receiver = {
             id: receiverId,
@@ -319,12 +322,11 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
             ports: receiverData.ports,
             position: { x: recX, y: recY },
             controllerConnection: controllerId,
+            differentialConnection: nearestDiff.id,
           };
 
           addReceiver(receiver);
 
-          // Connect receiver to nearest differential
-          const nearestDiff = differentials[idx % differentials.length];
           addWire({
             id: `wire-diff-rec-${Date.now()}-${idx}`,
             color: 'blue',
@@ -368,10 +370,10 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
         name: `Receiver ${receiverIndex}`,
         dipSwitch: String(receiverIndex - 1).padStart(4, '0'),
         ports: [
-          { id: `pA-${receiverIndex}`, name: 'Port A', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
-          { id: `pB-${receiverIndex}`, name: 'Port B', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
-          { id: `pC-${receiverIndex}`, name: 'Port C', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
-          { id: `pD-${receiverIndex}`, name: 'Port D', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
+          { id: `p1-${receiverIndex}`, name: 'Port 1', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
+          { id: `p2-${receiverIndex}`, name: 'Port 2', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
+          { id: `p3-${receiverIndex}`, name: 'Port 3', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
+          { id: `p4-${receiverIndex}`, name: 'Port 4', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
         ],
       };
       receivers.push(currentReceiver);

@@ -26,10 +26,12 @@ export interface Controller {
 export interface Receiver {
   id: string;
   name: string;
+  customName?: string; // User-editable custom name
   dipSwitch: string;
   ports: Port[];
   position: { x: number; y: number };
   controllerConnection?: string;
+  differentialConnection?: string; // Which differential this receiver is connected to
 }
 
 export interface Differential {
