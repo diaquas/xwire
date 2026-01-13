@@ -78,14 +78,16 @@ export class XLightsParser {
         const displayAs = attrs.DisplayAs || '';
         const modelName = attrs.name || attrs.Name || 'Unknown';
 
-        // DEBUG: Log models with "Arch" in the name or DisplayAs
-        if (modelName.toLowerCase().includes('arch') || displayAs.toLowerCase().includes('arch')) {
-          console.log(`DEBUG Arch Model: ${modelName}`, {
+        // DEBUG: Log models with "Arch" or "Pumpkin" in the name or DisplayAs
+        if (modelName.toLowerCase().includes('arch') || displayAs.toLowerCase().includes('arch') ||
+            modelName.toLowerCase().includes('pumpkin')) {
+          console.log(`DEBUG Model: ${modelName}`, {
             displayAs: displayAs,
             parm1: attrs.parm1,
             parm2: attrs.parm2,
             parm3: attrs.parm3,
             PixelCount: attrs.PixelCount,
+            hasCustomModel: !!model.CustomModel,
           });
         }
 
@@ -124,18 +126,22 @@ export class XLightsParser {
               break;
 
             case 'Custom':
-              // Custom: Try parm1 first (often node count), then check CustomModel
-              if (attrs.parm1) {
-                pixelCount = parseInt(attrs.parm1, 10) || 0;
-              }
-              // If we have CustomModel data, count the nodes
-              if (!pixelCount && model.CustomModel?.[0]) {
+              // Custom: Parse CustomModel data first (most accurate)
+              if (model.CustomModel?.[0]) {
                 const customData = model.CustomModel[0]._ || model.CustomModel[0];
                 if (typeof customData === 'string') {
-                  // CustomModel data is comma-separated node positions
-                  const nodes = customData.split(',').filter(n => n.trim());
-                  pixelCount = nodes.length / 2; // Each node is X,Y pair
+                  // CustomModel data is a grid: rows separated by semicolons, columns by commas
+                  // Each cell contains a pixel index (or is empty)
+                  // Count unique pixel indices to get total pixel count
+                  const cells = customData.split(/[;,]/).filter(cell => cell.trim() !== '');
+                  const uniquePixels = new Set(cells.map(c => parseInt(c.trim(), 10))).size;
+                  pixelCount = uniquePixels;
                 }
+              }
+
+              // Fallback: Try parm1 if CustomModel parsing failed
+              if (!pixelCount && attrs.parm1) {
+                pixelCount = parseInt(attrs.parm1, 10) || 0;
               }
               break;
 
@@ -193,8 +199,8 @@ export class XLightsParser {
           smartRemote: smartRemote,
         };
 
-        // DEBUG: Log Arch models with calculated pixel count
-        if (modelName.toLowerCase().includes('arch')) {
+        // DEBUG: Log Arch and Pumpkin models with calculated pixel count
+        if (modelName.toLowerCase().includes('arch') || modelName.toLowerCase().includes('pumpkin')) {
           console.log(`  -> Calculated pixelCount for ${modelName}: ${pixelCount}`);
         }
 
