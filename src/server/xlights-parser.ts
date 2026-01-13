@@ -113,19 +113,26 @@ export class XLightsParser {
           }
         }
 
+        // Extract port and smart remote info from ControllerConnection
+        const controllerConn = model.ControllerConnection?.[0]?.$ || {};
+        const port = controllerConn.Port ? parseInt(controllerConn.Port, 10) : null;
+        const smartRemote = controllerConn.SmartRemote ? parseInt(controllerConn.SmartRemote, 10) : null;
+
         const modelInfo = {
           name: attrs.name || attrs.Name,
           controller: controllerName,
           startChannel: startChannel,
           pixelCount: pixelCount,
           displayAs: displayAs,
-          protocol: model.ControllerConnection?.[0]?.$?.Protocol || 'ws2811',
+          protocol: controllerConn.Protocol || 'ws2811',
+          port: port,
+          smartRemote: smartRemote,
         };
 
         // DEBUG: Log parsed channel for first few models
         if (controllerInfo.models.length < 5) {
           const universe = startChannel ? Math.floor((startChannel - 1) / 510) + 1 : null;
-          console.log(`  -> Parsed channel: ${startChannel}, Universe: ${universe}`);
+          console.log(`  -> Parsed channel: ${startChannel}, Universe: ${universe}, Port: ${port}, SmartRemote: ${smartRemote}`);
         }
 
         controllerInfo.models.push(modelInfo);
