@@ -311,14 +311,25 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
           const recX = centerX + receiverRadius * Math.cos(angle);
           const recY = centerY + receiverRadius * Math.sin(angle);
 
-          // Connect receiver to nearest differential
-          const nearestDiff = differentials[idx % differentials.length];
+          // Calculate differential port number (1-16, cycling through 16 ports)
+          // 4 differentials × 4 ports each = 16 total differential ports
+          const differentialPortNumber = (idx % 16) + 1;
+
+          // Determine which differential (0-3) and which port on it (0-3)
+          const diffIndex = Math.floor((differentialPortNumber - 1) / 4);
+          const portIndex = (differentialPortNumber - 1) % 4;
+          const nearestDiff = differentials[diffIndex];
+
+          // For now, assign all receivers as receiver #0 on their differential port
+          // (daisy-chaining with multiple receivers per port will be implemented later)
+          const receiverNumber = 0;
 
           const receiverId = `receiver-${Date.now()}-${idx}`;
           const receiver: Receiver = {
             id: receiverId,
             name: receiverData.name,
-            dipSwitch: receiverData.dipSwitch,
+            dipSwitch: String(receiverNumber).padStart(4, '0'), // "0000" for receiver 0
+            differentialPortNumber: differentialPortNumber,
             ports: receiverData.ports,
             position: { x: recX, y: recY },
             controllerConnection: controllerId,

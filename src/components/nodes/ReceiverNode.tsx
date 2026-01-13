@@ -13,15 +13,13 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(receiver.customName || '');
 
-  // Find connected differential for hierarchy display
-  const connectedDifferential = receiver.differentialConnection
-    ? differentials.find(d => d.id === receiver.differentialConnection)
-    : null;
+  // Parse receiver number from dipSwitch (e.g., "0000" -> 0, "0001" -> 1)
+  const receiverNumber = parseInt(receiver.dipSwitch, 10) || 0;
 
-  // Build hierarchy subtitle
-  const hierarchyText = connectedDifferential
-    ? `${connectedDifferential.name} > DIP ${receiver.dipSwitch}`
-    : `DIP ${receiver.dipSwitch}`;
+  // Build hierarchy subtitle: "Differential Port X > Receiver Y"
+  const hierarchyText = receiver.differentialPortNumber
+    ? `Differential Port ${receiver.differentialPortNumber} > Receiver ${receiverNumber}`
+    : `Receiver ${receiverNumber}`;
 
   const displayName = receiver.customName || receiver.name;
 
@@ -114,11 +112,17 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
 
       {receiver.ports.length > 0 && (
         <div style={{ fontSize: '10px' }}>
-          {receiver.ports.map((port) => {
+          {receiver.ports.map((port, portIdx) => {
             const remainingPixels = port.maxPixels - port.currentPixels;
             const percentUsed = port.maxPixels > 0 ? (port.currentPixels / port.maxPixels) * 100 : 0;
             const isOverBudget = percentUsed > 100;
             const isNearLimit = percentUsed > 80 && percentUsed <= 100;
+
+            // Build full address: DifferentialPort:Receiver:Port (e.g., "1:0:1")
+            const portNumber = portIdx + 1;
+            const fullAddress = receiver.differentialPortNumber
+              ? `${receiver.differentialPortNumber}:${receiverNumber}:${portNumber}`
+              : `${receiverNumber}:${portNumber}`;
 
             return (
               <div
@@ -132,7 +136,7 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', fontWeight: 'bold' }}>
-                  <span>{port.name}</span>
+                  <span title={`Address: ${fullAddress}`}>{port.name} ({fullAddress})</span>
                   <span style={{ color: isOverBudget ? '#E53E3E' : isNearLimit ? '#DD6B20' : '#2F855A' }}>
                     {port.currentPixels}/{port.maxPixels}px
                   </span>
