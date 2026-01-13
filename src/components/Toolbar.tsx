@@ -464,6 +464,11 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
     });
     console.log('======================\n');
 
+    // Initialize receivers array and constants
+    const receivers: any[] = [];
+    const portsPerReceiver = 4;
+    const maxPixelsPerPort = 1024;
+
     // Process each universe separately to create receivers
     // This ensures models from the same universe are grouped on the same differential port
     Object.keys(modelsByUniverse).sort((a, b) => parseInt(a) - parseInt(b)).forEach(universeStr => {
