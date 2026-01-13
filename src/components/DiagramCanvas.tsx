@@ -64,6 +64,13 @@ export const DiagramCanvas = ({ selectedWireColor }: DiagramCanvasProps) => {
     updateEthernetSwitch,
     updatePowerSupply,
     updateLabel,
+    removeController,
+    removeReceiver,
+    removeDifferential,
+    removeEthernetSwitch,
+    removePowerSupply,
+    removeLabel,
+    removeWire,
   } = useDiagramStore();
 
   // Convert our data to React Flow nodes
@@ -216,6 +223,40 @@ export const DiagramCanvas = ({ selectedWireColor }: DiagramCanvasProps) => {
     [updateController, updateReceiver, updateDifferential, updateEthernetSwitch, updatePowerSupply, updateLabel]
   );
 
+  // Handle node deletion (triggered by Delete key or programmatic deletion)
+  const onNodesDelete = useCallback(
+    (deleted: Node[]) => {
+      deleted.forEach((node) => {
+        const nodeType = node.type;
+
+        if (nodeType === 'controller') {
+          removeController(node.id);
+        } else if (nodeType === 'receiver') {
+          removeReceiver(node.id);
+        } else if (nodeType === 'differential') {
+          removeDifferential(node.id);
+        } else if (nodeType === 'ethernetSwitch') {
+          removeEthernetSwitch(node.id);
+        } else if (nodeType === 'powerSupply') {
+          removePowerSupply(node.id);
+        } else if (nodeType === 'label') {
+          removeLabel(node.id);
+        }
+      });
+    },
+    [removeController, removeReceiver, removeDifferential, removeEthernetSwitch, removePowerSupply, removeLabel]
+  );
+
+  // Handle edge/wire deletion
+  const onEdgesDelete = useCallback(
+    (deleted: Edge[]) => {
+      deleted.forEach((edge) => {
+        removeWire(edge.id);
+      });
+    },
+    [removeWire]
+  );
+
   return (
     <div style={{ width: '100%', height: '100vh' }}>
       <ReactFlow
@@ -225,9 +266,12 @@ export const DiagramCanvas = ({ selectedWireColor }: DiagramCanvasProps) => {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeDragStop={onNodeDragStop}
+        onNodesDelete={onNodesDelete}
+        onEdgesDelete={onEdgesDelete}
         nodeTypes={nodeTypes}
         connectionLineType={ConnectionLineType.SmoothStep}
         fitView
+        deleteKeyCode="Delete"
       >
         <Background />
         <Controls />
