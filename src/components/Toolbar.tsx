@@ -314,16 +314,13 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
         });
         console.log('======================\n');
 
-        // Create DifferentialPort nodes for each unique differential port (data layer)
+        // Create DifferentialPort nodes for ALL 16 differential ports (data layer)
+        // These must exist for all ports, not just ones with receivers
         const differentialPorts: Map<number, DifferentialPort> = new Map();
         const maxPixelsPerPort = 1024;
 
-        const sortedPorts = Object.keys(receiversByDiffPort)
-          .map(p => parseInt(p, 10))
-          .sort((a, b) => a - b);
-
-        // Create all DifferentialPort nodes (not directly rendered)
-        sortedPorts.forEach((portNumber) => {
+        // Create all 16 DifferentialPort nodes (1-16) regardless of usage
+        for (let portNumber = 1; portNumber <= 16; portNumber++) {
           const diffPortId = `diff-port-${Date.now()}-${portNumber}`;
 
           const differentialPort: DifferentialPort = {
@@ -343,7 +340,12 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
 
           addDifferentialPort(differentialPort);
           differentialPorts.set(portNumber, differentialPort);
-        });
+        }
+
+        // Get sorted list of ports that have receivers for processing
+        const sortedPorts = Object.keys(receiversByDiffPort)
+          .map(p => parseInt(p, 10))
+          .sort((a, b) => a - b);
 
         // Create 4 Differential boards (UI layer) - each board contains 4 ports
         // Board 1: ports 1-4, Board 2: ports 5-8, Board 3: ports 9-12, Board 4: ports 13-16
@@ -355,12 +357,12 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
         const differentialBoards: Map<number, Differential> = new Map();
 
         for (let boardNum = 1; boardNum <= boardCount; boardNum++) {
-          // Determine which ports belong to this board
+          // Determine which ports belong to this board (always 4 ports per board)
           const startPort = (boardNum - 1) * 4 + 1;
           const endPort = startPort + 3;
           const boardPortIds: string[] = [];
 
-          // Find DifferentialPort IDs for this board
+          // Find DifferentialPort IDs for this board (always finds exactly 4)
           for (let portNum = startPort; portNum <= endPort; portNum++) {
             const port = differentialPorts.get(portNum);
             if (port) {
@@ -368,32 +370,30 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
             }
           }
 
-          // Only create board if it has ports
-          if (boardPortIds.length > 0) {
-            const boardX = boardStartX + ((boardNum - 1) * boardSpacing);
-            const boardId = `diff-board-${Date.now()}-${boardNum}`;
+          // Create board with all 4 ports (some may be unused/unconnected)
+          const boardX = boardStartX + ((boardNum - 1) * boardSpacing);
+          const boardId = `diff-board-${Date.now()}-${boardNum}`;
 
-            const board: Differential = {
-              id: boardId,
-              name: `Differential ${boardNum}`,
-              boardNumber: boardNum,
-              differentialPorts: boardPortIds,
-              controllerConnection: controllerId,
-              position: { x: boardX, y: boardY },
-            };
+          const board: Differential = {
+            id: boardId,
+            name: `Differential ${boardNum}`,
+            boardNumber: boardNum,
+            differentialPorts: boardPortIds,
+            controllerConnection: controllerId,
+            position: { x: boardX, y: boardY },
+          };
 
-            addDifferential(board);
-            differentialBoards.set(boardNum, board);
+          addDifferential(board);
+          differentialBoards.set(boardNum, board);
 
-            // Wire from controller to board
-            addWire({
-              id: `wire-ctrl-board-${Date.now()}-${boardNum}`,
-              color: 'blue',
-              from: { nodeId: controllerId },
-              to: { nodeId: boardId },
-              label: '',
-            });
-          }
+          // Wire from controller to board
+          addWire({
+            id: `wire-ctrl-board-${Date.now()}-${boardNum}`,
+            color: 'blue',
+            from: { nodeId: controllerId },
+            to: { nodeId: boardId },
+            label: '',
+          });
         }
 
         // Create receivers and wire them to differential boards
