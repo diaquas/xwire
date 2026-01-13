@@ -17,9 +17,11 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
     loadDiagram,
   } = useDiagramStore();
 
-  const [xLightsPath, setXLightsPath] = useState('');
+  const [xLightsNetworksPath, setXLightsNetworksPath] = useState('');
+  const [xLightsRgbEffectsPath, setXLightsRgbEffectsPath] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [availableControllers, setAvailableControllers] = useState<any[]>([]);
+  const [controllerPortInfo, setControllerPortInfo] = useState<any>(null);
 
   const handleAddController = () => {
     const newController: Controller = {
@@ -114,21 +116,21 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
   };
 
   const handleConnectXLights = async () => {
-    if (!xLightsPath) {
-      alert('Please enter the path to your xLights network XML file');
+    if (!xLightsNetworksPath) {
+      alert('Please enter the path to your xlights_networks.xml file');
       return;
     }
 
     try {
-      // First, parse the file to get controllers
+      // Parse networks file to get controller universe definitions
       const parseResponse = await fetch('http://localhost:3001/api/xlights/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filePath: xLightsPath }),
+        body: JSON.stringify({ filePath: xLightsNetworksPath }),
       });
 
       if (!parseResponse.ok) {
-        alert('Failed to parse xLights file');
+        alert('Failed to parse xLights networks file');
         return;
       }
 
@@ -136,22 +138,45 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
       console.log('Parsed controllers:', controllers);
 
       if (controllers.length === 0) {
-        alert('No controllers found in xLights file');
+        alert('No controllers found in xLights networks file');
         return;
       }
 
       setAvailableControllers(controllers);
+
+      // If rgbeffects file path provided, parse it too for port mapping
+      let portInfo = null;
+      if (xLightsRgbEffectsPath) {
+        try {
+          const rgbResponse = await fetch('http://localhost:3001/api/xlights/parse-rgbeffects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filePath: xLightsRgbEffectsPath }),
+          });
+
+          if (rgbResponse.ok) {
+            portInfo = await rgbResponse.json();
+            setControllerPortInfo(portInfo);
+            console.log('Parsed port info:', portInfo);
+          }
+        } catch (error) {
+          console.error('Error parsing rgbeffects:', error);
+          // Continue anyway with just networks data
+        }
+      }
+
       setIsConnected(true);
 
-      // Then watch for changes
+      // Watch for changes
       const watchResponse = await fetch('http://localhost:3001/api/xlights/watch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filePath: xLightsPath }),
+        body: JSON.stringify({ filePath: xLightsNetworksPath }),
       });
 
       if (watchResponse.ok) {
-        alert(`Connected to xLights! Found ${controllers.length} controller(s).`);
+        const portInfoMsg = portInfo ? ` with port mapping from ${Object.keys(portInfo.controllers).length} controller(s)` : '';
+        alert(`Connected to xLights! Found ${controllers.length} controller(s)${portInfoMsg}.`);
       }
     } catch (error) {
       console.error('Error connecting to xLights:', error);
@@ -170,17 +195,18 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
     let xPosition = 100;
 
     availableControllers.forEach((xlController, index) => {
-      // Create ports from xLights outputs
-      // Use actual port numbers (1, 2, 3...) instead of universe numbers
+      // NOTE: Currently creating one "port" per universe from networks XML
+      // This is temporary - universes are NOT the same as physical ports!
+      // TODO: Once we have rgbeffects data, group universes by actual physical ports
+      // For now, showing universes so user can see the data structure
       const ports = xlController.outputs.map((output: any, portIndex: number) => {
         const maxPixels = Math.floor(output.channels / 3); // RGB: 3 channels per pixel
-        const portNum = portIndex + 1;
         return {
-          id: `p${portNum}`,
-          name: `Port ${portNum}`,
+          id: `u${output.number}`,
+          name: `Universe ${output.number}`, // Temporarily showing universes
           maxPixels: maxPixels,
           currentPixels: 0,
-          universe: output.number, // Store universe number as metadata
+          universe: output.number,
         };
       });
 
@@ -287,16 +313,36 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
         <h4 style={{ fontSize: '12px', margin: '0 0 5px 0', color: '#666' }}>
           xLights Integration
         </h4>
+        <div style={{ fontSize: '10px', marginBottom: '5px', color: '#666' }}>
+          Networks XML (required):
+        </div>
         <input
           type="text"
-          value={xLightsPath}
-          onChange={(e) => setXLightsPath(e.target.value)}
-          placeholder="/path/to/xlights_networks.xml"
+          value={xLightsNetworksPath}
+          onChange={(e) => setXLightsNetworksPath(e.target.value)}
+          placeholder="C:\Users\...\xlights_networks.xml"
           style={{
             width: '100%',
             padding: '5px',
-            fontSize: '11px',
-            marginBottom: '5px',
+            fontSize: '10px',
+            marginBottom: '8px',
+            borderRadius: '4px',
+            border: '1px solid #ccc',
+          }}
+        />
+        <div style={{ fontSize: '10px', marginBottom: '5px', color: '#666' }}>
+          RGB Effects XML (optional, for port mapping):
+        </div>
+        <input
+          type="text"
+          value={xLightsRgbEffectsPath}
+          onChange={(e) => setXLightsRgbEffectsPath(e.target.value)}
+          placeholder="C:\Users\...\xlights_rgbeffects.xml"
+          style={{
+            width: '100%',
+            padding: '5px',
+            fontSize: '10px',
+            marginBottom: '8px',
             borderRadius: '4px',
             border: '1px solid #ccc',
           }}

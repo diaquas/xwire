@@ -112,6 +112,69 @@ app.post('/api/xlights/debug', async (req, res) => {
   }
 });
 
+// Parse rgbeffects XML file
+app.post('/api/xlights/parse-rgbeffects', async (req, res) => {
+  const { filePath } = req.body;
+
+  if (!filePath) {
+    return res.status(400).json({ error: 'filePath is required' });
+  }
+
+  try {
+    console.log('=== PARSING RGBEFFECTS FILE ===');
+    console.log('File path:', filePath);
+    const controllerInfo = await parser.parseRgbEffectsFile(filePath);
+    console.log('Parsed controller info:', Object.keys(controllerInfo.controllers).length, 'controllers');
+    res.json(controllerInfo);
+  } catch (error) {
+    console.error('Parse error:', error);
+    res.status(500).json({ error: 'Error parsing rgbeffects file', details: String(error) });
+  }
+});
+
+// Debug endpoint for rgbeffects XML
+app.post('/api/xlights/debug-rgbeffects', async (req, res) => {
+  const { filePath } = req.body;
+
+  if (!filePath) {
+    return res.status(400).json({ error: 'filePath is required' });
+  }
+
+  try {
+    const xmlContent = await fs.readFile(filePath, 'utf-8');
+    const { parseString } = await import('xml2js');
+
+    parseString(xmlContent, (err: any, result: any) => {
+      if (err) {
+        return res.status(500).json({ error: 'XML parse error', details: String(err) });
+      }
+
+      console.log('=== RAW RGBEFFECTS XML STRUCTURE ===');
+      console.log('Root keys:', Object.keys(result));
+
+      // Show first few models if they exist
+      if (result.xrgb?.models?.[0]?.model) {
+        const models = Array.isArray(result.xrgb.models[0].model)
+          ? result.xrgb.models[0].model
+          : [result.xrgb.models[0].model];
+        console.log(`Found ${models.length} models`);
+        console.log('First model sample:', JSON.stringify(models[0], null, 2));
+      }
+
+      res.json({
+        structure: result,
+        rootKeys: Object.keys(result),
+        hasModels: !!result.xrgb?.models,
+        modelCount: result.xrgb?.models?.[0]?.model ?
+          (Array.isArray(result.xrgb.models[0].model) ? result.xrgb.models[0].model.length : 1) : 0,
+      });
+    });
+  } catch (error) {
+    console.error('Debug error:', error);
+    res.status(500).json({ error: 'Error reading file', details: String(error) });
+  }
+});
+
 // Server-Sent Events for real-time updates
 app.get('/api/xlights/stream', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');

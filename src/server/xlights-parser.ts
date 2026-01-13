@@ -13,6 +13,85 @@ export class XLightsParser {
     }
   }
 
+  async parseRgbEffectsFile(filePath: string): Promise<any> {
+    try {
+      const xmlContent = await fs.readFile(filePath, 'utf-8');
+      return await this.parseRgbEffectsXML(xmlContent);
+    } catch (error) {
+      console.error('Error reading xLights rgbeffects file:', error);
+      throw error;
+    }
+  }
+
+  private parseRgbEffectsXML(xml: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      parseString(xml, (err, result) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        try {
+          const controllerInfo = this.extractControllerInfo(result);
+          resolve(controllerInfo);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+  }
+
+  private extractControllerInfo(xmlData: any): any {
+    console.log('Parsing rgbeffects XML structure...');
+
+    const controllerInfo: any = {
+      controllers: {},
+      models: []
+    };
+
+    // Look for controller definitions
+    // Typical structure: xlights_rgbeffects.xml has models with ControllerConnection attributes
+    if (xmlData.xrgb?.models?.[0]?.model) {
+      const models = Array.isArray(xmlData.xrgb.models[0].model)
+        ? xmlData.xrgb.models[0].model
+        : [xmlData.xrgb.models[0].model];
+
+      for (const model of models) {
+        const attrs = model.$ || {};
+        if (attrs.ControllerConnection) {
+          const modelInfo = {
+            name: attrs.name || attrs.Name,
+            controller: attrs.ControllerConnection,
+            port: attrs.Port,
+            startChannel: attrs.StartChannel,
+            channels: attrs.parm1, // parm1 often contains channel count
+          };
+          controllerInfo.models.push(modelInfo);
+
+          // Group by controller
+          if (!controllerInfo.controllers[attrs.ControllerConnection]) {
+            controllerInfo.controllers[attrs.ControllerConnection] = {
+              ports: {}
+            };
+          }
+
+          // Group by port
+          if (attrs.Port) {
+            if (!controllerInfo.controllers[attrs.ControllerConnection].ports[attrs.Port]) {
+              controllerInfo.controllers[attrs.ControllerConnection].ports[attrs.Port] = [];
+            }
+            controllerInfo.controllers[attrs.ControllerConnection].ports[attrs.Port].push(modelInfo);
+          }
+        }
+      }
+    }
+
+    console.log(`Found ${controllerInfo.models.length} models with controller connections`);
+    console.log(`Controllers: ${Object.keys(controllerInfo.controllers).join(', ')}`);
+
+    return controllerInfo;
+  }
+
   private parseXML(xml: string): Promise<XLightsController[]> {
     return new Promise((resolve, reject) => {
       parseString(xml, (err, result) => {
