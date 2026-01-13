@@ -49,8 +49,7 @@ export class XLightsParser {
       models: []
     };
 
-    // Look for controller definitions
-    // Typical structure: xlights_rgbeffects.xml has models with ControllerConnection attributes
+    // xLights rgbeffects.xml structure: models have Controller attribute (not ControllerConnection)
     if (xmlData.xrgb?.models?.[0]?.model) {
       const models = Array.isArray(xmlData.xrgb.models[0].model)
         ? xmlData.xrgb.models[0].model
@@ -58,36 +57,57 @@ export class XLightsParser {
 
       for (const model of models) {
         const attrs = model.$ || {};
-        if (attrs.ControllerConnection) {
-          const modelInfo = {
-            name: attrs.name || attrs.Name,
-            controller: attrs.ControllerConnection,
-            port: attrs.Port,
-            startChannel: attrs.StartChannel,
-            channels: attrs.parm1, // parm1 often contains channel count
+        const controllerName = attrs.Controller;
+
+        // Skip models without a controller or with "No Controller"
+        if (!controllerName || controllerName === 'No Controller') {
+          continue;
+        }
+
+        const modelInfo = {
+          name: attrs.name || attrs.Name,
+          controller: controllerName,
+          startChannel: parseInt(attrs.StartChannel || '0', 10),
+          pixelCount: parseInt(attrs.parm2 || attrs.parm1 || '0', 10), // parm2 is usually pixel count
+          protocol: model.ControllerConnection?.[0]?.$?.Protocol || 'ws2811',
+        };
+
+        controllerInfo.models.push(modelInfo);
+
+        // Group by controller
+        if (!controllerInfo.controllers[controllerName]) {
+          controllerInfo.controllers[controllerName] = {
+            models: [],
+            channelRanges: []
           };
-          controllerInfo.models.push(modelInfo);
+        }
 
-          // Group by controller
-          if (!controllerInfo.controllers[attrs.ControllerConnection]) {
-            controllerInfo.controllers[attrs.ControllerConnection] = {
-              ports: {}
-            };
-          }
+        controllerInfo.controllers[controllerName].models.push(modelInfo);
+      }
 
-          // Group by port
-          if (attrs.Port) {
-            if (!controllerInfo.controllers[attrs.ControllerConnection].ports[attrs.Port]) {
-              controllerInfo.controllers[attrs.ControllerConnection].ports[attrs.Port] = [];
-            }
-            controllerInfo.controllers[attrs.ControllerConnection].ports[attrs.Port].push(modelInfo);
-          }
+      // Calculate channel ranges for each controller
+      for (const ctrlName in controllerInfo.controllers) {
+        const ctrl = controllerInfo.controllers[ctrlName];
+        ctrl.models.sort((a: any, b: any) => a.startChannel - b.startChannel);
+
+        if (ctrl.models.length > 0) {
+          const minChannel = ctrl.models[0].startChannel;
+          const lastModel = ctrl.models[ctrl.models.length - 1];
+          const maxChannel = lastModel.startChannel + (lastModel.pixelCount * 3); // RGB = 3 channels
+          ctrl.channelRanges = [minChannel, maxChannel];
+          ctrl.totalModels = ctrl.models.length;
         }
       }
     }
 
     console.log(`Found ${controllerInfo.models.length} models with controller connections`);
     console.log(`Controllers: ${Object.keys(controllerInfo.controllers).join(', ')}`);
+
+    // Log summary for each controller
+    for (const ctrlName in controllerInfo.controllers) {
+      const ctrl = controllerInfo.controllers[ctrlName];
+      console.log(`  ${ctrlName}: ${ctrl.totalModels} models, channels ${ctrl.channelRanges[0]}-${ctrl.channelRanges[1]}`);
+    }
 
     return controllerInfo;
   }
