@@ -40,7 +40,11 @@ const getWireColor = (color: WireColor): string => {
   }
 };
 
-export const DiagramCanvas = () => {
+interface DiagramCanvasProps {
+  selectedWireColor: WireColor;
+}
+
+export const DiagramCanvas = ({ selectedWireColor }: DiagramCanvasProps) => {
   const {
     controllers,
     receivers,
@@ -132,7 +136,7 @@ export const DiagramCanvas = () => {
     (connection: Connection) => {
       const newWire = {
         id: `wire-${Date.now()}`,
-        color: 'black' as WireColor,
+        color: selectedWireColor,
         from: {
           nodeId: connection.source!,
           portId: connection.sourceHandle || undefined,
@@ -151,7 +155,7 @@ export const DiagramCanvas = () => {
             ...connection,
             id: newWire.id,
             style: {
-              stroke: getWireColor('black'),
+              stroke: getWireColor(selectedWireColor),
               strokeWidth: 3,
             },
             type: 'smoothstep',
@@ -160,7 +164,7 @@ export const DiagramCanvas = () => {
         )
       );
     },
-    [addWire, setEdges]
+    [addWire, setEdges, selectedWireColor]
   );
 
   // Update store when nodes are dragged

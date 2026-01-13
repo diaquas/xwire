@@ -2,7 +2,12 @@ import { useState } from 'react';
 import { useDiagramStore } from '../store/diagramStore';
 import { Controller, Receiver, PowerSupply, Label, WireColor } from '../types/diagram';
 
-export const Toolbar = () => {
+interface ToolbarProps {
+  selectedWireColor: WireColor;
+  onWireColorChange: (color: WireColor) => void;
+}
+
+export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) => {
   const {
     addController,
     addReceiver,
@@ -13,7 +18,8 @@ export const Toolbar = () => {
   } = useDiagramStore();
 
   const [xLightsPath, setXLightsPath] = useState('');
-  const [selectedWireColor, setSelectedWireColor] = useState<WireColor>('black');
+  const [isConnected, setIsConnected] = useState(false);
+  const [availableControllers, setAvailableControllers] = useState<any[]>([]);
 
   const handleAddController = () => {
     const newController: Controller = {
@@ -114,21 +120,87 @@ export const Toolbar = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:3001/api/xlights/watch', {
+      // First, parse the file to get controllers
+      const parseResponse = await fetch('http://localhost:3001/api/xlights/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filePath: xLightsPath }),
       });
 
-      if (response.ok) {
-        alert('Connected to xLights! Changes will auto-update.');
-      } else {
-        alert('Failed to connect to xLights file');
+      if (!parseResponse.ok) {
+        alert('Failed to parse xLights file');
+        return;
+      }
+
+      const controllers = await parseResponse.json();
+      console.log('Parsed controllers:', controllers);
+
+      if (controllers.length === 0) {
+        alert('No controllers found in xLights file');
+        return;
+      }
+
+      setAvailableControllers(controllers);
+      setIsConnected(true);
+
+      // Then watch for changes
+      const watchResponse = await fetch('http://localhost:3001/api/xlights/watch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath: xLightsPath }),
+      });
+
+      if (watchResponse.ok) {
+        alert(`Connected to xLights! Found ${controllers.length} controller(s).`);
       }
     } catch (error) {
       console.error('Error connecting to xLights:', error);
       alert('Failed to connect to xLights');
     }
+  };
+
+  const handleImportControllers = () => {
+    if (availableControllers.length === 0) {
+      alert('No controllers available to import');
+      return;
+    }
+
+    let yPosition = 100;
+    const xSpacing = 350;
+    let xPosition = 100;
+
+    availableControllers.forEach((xlController, index) => {
+      // Create ports from xLights outputs
+      const ports = xlController.outputs.map((output: any, portIndex: number) => {
+        const maxPixels = Math.floor(output.channels / 3); // RGB: 3 channels per pixel
+        return {
+          id: `p${portIndex + 1}`,
+          name: output.description || `Port ${output.number}`,
+          maxPixels: maxPixels,
+          currentPixels: 0,
+        };
+      });
+
+      const newController: Controller = {
+        id: `controller-${Date.now()}-${index}`,
+        name: xlController.name,
+        type: xlController.type || 'Unknown',
+        ports: ports,
+        position: { x: xPosition, y: yPosition },
+      };
+
+      addController(newController);
+
+      // Position next controller to the right
+      xPosition += xSpacing;
+      // Move to next row after 3 controllers
+      if ((index + 1) % 3 === 0) {
+        xPosition = 100;
+        yPosition += 300;
+      }
+    });
+
+    alert(`Imported ${availableControllers.length} controller(s) to diagram!`);
   };
 
   return (
@@ -176,7 +248,7 @@ export const Toolbar = () => {
         </h4>
         <div style={{ display: 'flex', gap: '5px' }}>
           <button
-            onClick={() => setSelectedWireColor('red')}
+            onClick={() => onWireColorChange('red')}
             style={{
               ...colorButtonStyle,
               background: '#E53E3E',
@@ -185,7 +257,7 @@ export const Toolbar = () => {
             title="Power"
           />
           <button
-            onClick={() => setSelectedWireColor('black')}
+            onClick={() => onWireColorChange('black')}
             style={{
               ...colorButtonStyle,
               background: '#2D3748',
@@ -194,7 +266,7 @@ export const Toolbar = () => {
             title="Data"
           />
           <button
-            onClick={() => setSelectedWireColor('blue')}
+            onClick={() => onWireColorChange('blue')}
             style={{
               ...colorButtonStyle,
               background: '#3182CE',
@@ -226,9 +298,24 @@ export const Toolbar = () => {
             border: '1px solid #ccc',
           }}
         />
-        <button onClick={handleConnectXLights} style={buttonStyle}>
-          Connect to xLights
-        </button>
+        <div style={{ display: 'flex', gap: '5px', flexDirection: 'column' }}>
+          <button onClick={handleConnectXLights} style={buttonStyle}>
+            Connect to xLights
+          </button>
+          {isConnected && (
+            <button
+              onClick={handleImportControllers}
+              style={{
+                ...buttonStyle,
+                background: '#48BB78',
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+            >
+              Import {availableControllers.length} Controller(s)
+            </button>
+          )}
+        </div>
       </div>
 
       <div>

@@ -1,10 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { DiagramCanvas } from './components/DiagramCanvas';
 import { Toolbar } from './components/Toolbar';
 import { useDiagramStore } from './store/diagramStore';
+import { WireColor } from './types/diagram';
 
 function App() {
   const { loadDiagram } = useDiagramStore();
+  const [selectedWireColor, setSelectedWireColor] = useState<WireColor>('black');
 
   useEffect(() => {
     // Load saved diagram on mount
@@ -39,8 +41,11 @@ function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <Toolbar />
-      <DiagramCanvas />
+      <Toolbar
+        selectedWireColor={selectedWireColor}
+        onWireColorChange={setSelectedWireColor}
+      />
+      <DiagramCanvas selectedWireColor={selectedWireColor} />
     </div>
   );
 }
