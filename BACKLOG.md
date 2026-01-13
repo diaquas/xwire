@@ -138,16 +138,41 @@
 ---
 
 ### Issue #8: Port Pixel Tracking
-**Status:** 🟢 To Do
+**Status:** ✅ COMPLETED (2026-01-13)
 **Priority:** Medium
 **Description:** Track current pixel usage per port and warn when approaching max.
 
+**Solution Implemented:**
+- Receiver ports now show current/max pixel usage with color-coded warnings
+- Red border when over budget (>100%)
+- Orange border when near limit (>80%)
+- Shows individual models under each port with pixel counts
+- Displays available pixels remaining on each port
+
+---
+
+### Issue #16: Configurable Differential Port Count
+**Status:** 🟢 To Do
+**Priority:** Medium
+**Description:** Allow users to configure how many differential ports their controller setup has.
+
+**Current Behavior:**
+- HinksPix differential count is hardcoded to 16 (4 boards × 4 ports)
+- Works for this specific setup but not configurable
+
 **Expected Behavior:**
-- Each port shows "current/max" pixels
-- Calculate current from connected models/props
-- Highlight in yellow when >80% capacity
-- Highlight in red when over capacity
-- Update automatically when connections change
+- Add "Differential Count" field to controller properties
+- Allow users to specify number of differential expansion boards
+- Calculate total differential ports (boards × 4)
+- Or allow direct entry of total differential port count
+- Store this value in controller configuration
+- Display correctly on HinksPix controller node
+
+**Use Cases:**
+- User has 4 differential boards = 16 differential ports (current setup)
+- Different user might have 2 boards = 8 ports
+- Another might have 5 boards = 20 ports
+- Standalone differential controllers with different port counts
 
 ---
 

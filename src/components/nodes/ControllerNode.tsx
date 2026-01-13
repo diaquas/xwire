@@ -10,13 +10,21 @@ export const ControllerNode = memo(({ data }: NodeProps<ControllerNodeData>) => 
   const { controller } = data;
   const [expanded, setExpanded] = useState(false);
 
+  // Special handling for HinksPix - it has differential outputs, not physical pixel ports
+  const isHinksPix = controller.type.toLowerCase().includes('hinkspix');
+  const hasPorts = !isHinksPix && controller.ports.length > 0;
+
   // For controllers with many ports, show compact summary
-  const shouldShowCompact = controller.ports.length > 8;
+  const shouldShowCompact = hasPorts && controller.ports.length > 8;
   const portsToShow = expanded || !shouldShowCompact ? controller.ports : controller.ports.slice(0, 4);
 
   // Calculate total pixels capacity
   const totalMaxPixels = controller.ports.reduce((sum, port) => sum + port.maxPixels, 0);
   const totalCurrentPixels = controller.ports.reduce((sum, port) => sum + port.currentPixels, 0);
+
+  // TODO: Make this configurable per controller
+  // For now, hardcoded to user's setup: 4 differential boards × 4 ports each = 16 differential outputs
+  const differentialCount = isHinksPix ? 16 : 0;
 
   return (
     <div
@@ -41,7 +49,37 @@ export const ControllerNode = memo(({ data }: NodeProps<ControllerNodeData>) => 
         {controller.type}
       </div>
 
-      {controller.ports.length > 0 && (
+      {isHinksPix && (
+        <div style={{ fontSize: '11px' }}>
+          <div
+            style={{
+              padding: '6px',
+              background: '#805AD5',
+              color: 'white',
+              borderRadius: '4px',
+              fontWeight: 'bold',
+              textAlign: 'center',
+              marginBottom: '4px',
+            }}
+          >
+            {differentialCount} Differential Outputs
+          </div>
+          <div
+            style={{
+              padding: '4px',
+              background: 'white',
+              borderRadius: '4px',
+              fontSize: '10px',
+              textAlign: 'center',
+              color: '#666',
+            }}
+          >
+            Connect via ribbon cable to differential jacks
+          </div>
+        </div>
+      )}
+
+      {hasPorts && (
         <div style={{ fontSize: '11px' }}>
           {/* Summary header for controllers with many ports */}
           {shouldShowCompact && (
