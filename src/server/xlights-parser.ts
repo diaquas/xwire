@@ -88,7 +88,18 @@ export class XLightsParser {
             parm3: attrs.parm3,
             PixelCount: attrs.PixelCount,
             hasCustomModel: !!model.CustomModel,
+            modelKeys: Object.keys(model).filter(k => k !== '$').slice(0, 15),
+            customModelType: typeof model.CustomModel,
+            attrsHasCustomModel: 'CustomModel' in attrs,
           });
+
+          // Log first Arch model structure more deeply
+          if (modelName === 'Arch 1') {
+            console.log('  Full Arch 1 model keys:', Object.keys(model));
+            if (attrs.CustomModel) {
+              console.log('  attrs.CustomModel sample:', attrs.CustomModel.substring(0, 200));
+            }
+          }
         }
 
         // First check for direct PixelCount attribute (most reliable)
