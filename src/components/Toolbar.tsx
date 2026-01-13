@@ -449,13 +449,29 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
     console.log(`\n=== RECEIVER GROUPING (xLights Port Mapping) ===`);
     console.log(`Total models: ${validModels.length}`);
 
+    // First, let's see what Port/SmartRemote values we have
+    const portStats: { [key: string]: number } = {};
+    validModels.forEach(model => {
+      const key = `Port=${model.port ?? 'null'}, Smart=${model.smartRemote ?? 'null'}`;
+      portStats[key] = (portStats[key] || 0) + 1;
+    });
+    console.log('\nPort/SmartRemote distribution across models:');
+    Object.keys(portStats).sort().forEach(key => {
+      console.log(`  ${key}: ${portStats[key]} models`);
+    });
+
     // Group models by (Port, SmartRemote) - each unique combination = 1 receiver
+    // Only include models that have BOTH port and smartRemote defined
     const receiverGroups: { [key: string]: any[] } = {};
 
     validModels.forEach(model => {
-      const port = model.port || 0;
-      const smartRemote = model.smartRemote || 1;
-      const key = `${port}-${smartRemote}`;
+      // Skip models without port/smartRemote info
+      if (model.port === null || model.port === undefined || model.smartRemote === null || model.smartRemote === undefined) {
+        console.warn(`  Skipping model "${model.name}" - missing port (${model.port}) or smartRemote (${model.smartRemote})`);
+        return;
+      }
+
+      const key = `${model.port}-${model.smartRemote}`;
 
       if (!receiverGroups[key]) {
         receiverGroups[key] = [];
