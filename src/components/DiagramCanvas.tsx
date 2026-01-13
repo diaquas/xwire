@@ -96,7 +96,7 @@ export const DiagramCanvas = ({ selectedWireColor }: DiagramCanvasProps) => {
         type: 'receiver',
         position: receiver.position,
         data: { receiver },
-        style: { width: 380, height: 280 }, // Set explicit size for parent node
+        style: { width: 340, height: 120 }, // Smaller receiver box
       });
 
       // Create port nodes as children of receiver
@@ -107,12 +107,14 @@ export const DiagramCanvas = ({ selectedWireColor }: DiagramCanvasProps) => {
           ? `${receiver.differentialPortNumber}:${receiverNumber}:${portNumber}`
           : `${receiverNumber}:${portNumber}`;
 
-        // Position ports relative to receiver (horizontal layout)
-        const portX = 40 + portIdx * 80; // Start at 40px from left, 80px spacing
-        const portY = 200; // 200px down from receiver top
+        // Position ports to overlap bottom edge of receiver
+        const portX = 30 + portIdx * 70; // Start at 30px from left, 70px spacing
+        const portY = 95; // Overlaps bottom edge (receiver height is 120px)
+
+        const portId = `${receiver.id}-port-${portIdx}`;
 
         nodes.push({
-          id: `${receiver.id}-port-${portIdx}`,
+          id: portId,
           type: 'port',
           position: { x: portX, y: portY }, // Relative to parent
           parentNode: receiver.id, // Make this a child of the receiver
@@ -128,21 +130,27 @@ export const DiagramCanvas = ({ selectedWireColor }: DiagramCanvasProps) => {
           },
         });
 
-        // Create model nodes for each model in this port
+        // Create model nodes as independent nodes (not children of receiver)
         if (port.models && port.models.length > 0) {
           port.models.forEach((model, modelIdx) => {
-            const modelY = portY + 80 + modelIdx * 40; // Stack vertically below port
+            // Position models in absolute coordinates below receiver
+            // Spread horizontally per port to avoid overlap, stack vertically per model
+            const horizontalOffset = portIdx * 130; // 130px horizontal spacing per port
+            const absoluteModelX = receiver.position.x + horizontalOffset + 10; // Aligned with port column
+            const absoluteModelY = receiver.position.y + 160 + modelIdx * 55; // Below receiver, stacked vertically with spacing
+
+            const modelId = `${receiver.id}-port-${portIdx}-model-${modelIdx}`;
+
             nodes.push({
-              id: `${receiver.id}-port-${portIdx}-model-${modelIdx}`,
+              id: modelId,
               type: 'model',
-              position: { x: portX - 20, y: modelY }, // Relative to parent, centered under port
-              parentNode: receiver.id, // Child of receiver
-              extent: 'parent',
-              draggable: false,
+              position: { x: absoluteModelX, y: absoluteModelY }, // Absolute canvas position
+              draggable: true, // Models can be moved independently
               data: {
                 name: model.name,
                 pixels: model.pixels,
-                portId: `${receiver.id}-port-${portIdx}`,
+                portId: portId,
+                modelIndex: modelIdx,
               },
             });
           });
@@ -192,20 +200,71 @@ export const DiagramCanvas = ({ selectedWireColor }: DiagramCanvasProps) => {
 
   // Convert wires to React Flow edges
   const initialEdges: Edge[] = useMemo(() => {
-    return wires.map((wire) => ({
-      id: wire.id,
-      source: wire.from.nodeId,
-      target: wire.to.nodeId,
-      sourceHandle: wire.from.portId,
-      targetHandle: wire.to.portId,
-      label: wire.label,
-      style: {
-        stroke: getWireColor(wire.color),
-        strokeWidth: 3,
-      },
-      type: 'smoothstep',
-    }));
-  }, [wires]);
+    const edges: Edge[] = [];
+
+    // Add regular wires from store
+    wires.forEach((wire) => {
+      edges.push({
+        id: wire.id,
+        source: wire.from.nodeId,
+        target: wire.to.nodeId,
+        sourceHandle: wire.from.portId,
+        targetHandle: wire.to.portId,
+        label: wire.label,
+        style: {
+          stroke: getWireColor(wire.color),
+          strokeWidth: 3,
+        },
+        type: 'smoothstep',
+      });
+    });
+
+    // Add black wires connecting ports to models
+    receivers.forEach((receiver) => {
+      receiver.ports.forEach((port, portIdx) => {
+        const portId = `${receiver.id}-port-${portIdx}`;
+
+        if (port.models && port.models.length > 0) {
+          port.models.forEach((model, modelIdx) => {
+            const modelId = `${receiver.id}-port-${portIdx}-model-${modelIdx}`;
+
+            if (modelIdx === 0) {
+              // Wire from port to first model
+              edges.push({
+                id: `wire-port-model-${portId}-${modelId}`,
+                source: portId,
+                target: modelId,
+                sourceHandle: 'port-output',
+                targetHandle: 'model-input',
+                style: {
+                  stroke: '#2D3748', // Black
+                  strokeWidth: 2,
+                },
+                type: 'smoothstep',
+              });
+            } else {
+              // Wire from previous model to this model
+              const prevModelId = `${receiver.id}-port-${portIdx}-model-${modelIdx - 1}`;
+              edges.push({
+                id: `wire-model-model-${prevModelId}-${modelId}`,
+                source: prevModelId,
+                target: modelId,
+                sourceHandle: 'model-output',
+                targetHandle: 'model-input',
+                style: {
+                  stroke: '#2D3748', // Black
+                  strokeWidth: 2,
+                },
+                type: 'smoothstep',
+              });
+            }
+          });
+        }
+      });
+    });
+
+    return edges;
+  }, [wires, receivers]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);

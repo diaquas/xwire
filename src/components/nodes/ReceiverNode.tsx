@@ -16,10 +16,10 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
   // Parse receiver number from dipSwitch (e.g., "0000" -> 0, "0001" -> 1)
   const receiverNumber = parseInt(receiver.dipSwitch, 10) || 0;
 
-  // Build hierarchy subtitle: "Differential Port X > Receiver Y"
-  const hierarchyText = receiver.differentialPortNumber
-    ? `Differential Port ${receiver.differentialPortNumber} > Receiver ${receiverNumber}`
-    : `Receiver ${receiverNumber}`;
+  // Build full address path for top-left display
+  const fullAddressPath = receiver.differentialPortNumber
+    ? `${receiver.differentialPortNumber}:${receiverNumber}`
+    : `${receiverNumber}`;
 
   const displayName = receiver.customName || receiver.name;
 
@@ -47,12 +47,12 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
   return (
     <div
       style={{
-        padding: '12px',
+        padding: '8px',
         border: '2px solid #48BB78',
         borderRadius: '8px',
         background: '#C6F6D5',
-        width: '380px',
-        height: '280px',
+        width: '340px',
+        height: '120px',
         position: 'relative',
         overflow: 'visible', // Allow child nodes to extend beyond
       }}
@@ -107,7 +107,21 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
         <Handle type="source" position={Position.Right} id="receiver-output-2" style={{ opacity: 0 }} />
       </div>
 
-      {/* Receiver name - editable on double-click */}
+      {/* Receiver number and address path in top-left */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '8px',
+          left: '8px',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          color: '#22543D',
+        }}
+      >
+        {receiverNumber} <span style={{ fontSize: '12px', fontWeight: 'normal', color: '#2F855A' }}>{fullAddressPath}</span>
+      </div>
+
+      {/* Receiver name - centered, big and bold */}
       {isEditing ? (
         <input
           type="text"
@@ -117,24 +131,33 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
           onKeyDown={handleKeyDown}
           autoFocus
           style={{
-            width: '100%',
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '80%',
             fontWeight: 'bold',
-            marginBottom: '4px',
             color: '#22543D',
             border: '2px solid #48BB78',
             borderRadius: '4px',
-            padding: '2px 4px',
-            fontSize: '14px',
+            padding: '4px 8px',
+            fontSize: '24px',
+            textAlign: 'center',
           }}
         />
       ) : (
         <div
           style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
             fontWeight: 'bold',
-            marginBottom: '2px',
             color: '#22543D',
             cursor: 'pointer',
-            fontSize: '14px',
+            fontSize: '24px',
+            textAlign: 'center',
+            width: '80%',
           }}
           onDoubleClick={handleDoubleClick}
           title="Double-click to rename"
@@ -142,44 +165,6 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
           {displayName}
         </div>
       )}
-
-      {/* Hierarchy subtitle */}
-      <div
-        style={{
-          fontSize: '10px',
-          color: '#2F855A',
-          marginBottom: '8px',
-          fontStyle: 'italic',
-          textAlign: 'center',
-        }}
-      >
-        {hierarchyText}
-      </div>
-
-      {/* Receiver number display */}
-      <div
-        style={{
-          fontSize: '48px',
-          fontWeight: 'bold',
-          color: '#22543D',
-          textAlign: 'center',
-          marginTop: '8px',
-        }}
-      >
-        {receiverNumber}
-      </div>
-
-      {/* Port count indicator */}
-      <div
-        style={{
-          fontSize: '10px',
-          color: '#2F855A',
-          textAlign: 'center',
-          marginTop: '8px',
-        }}
-      >
-        {receiver.ports.length} Ports
-      </div>
     </div>
   );
 });
