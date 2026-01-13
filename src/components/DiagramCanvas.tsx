@@ -271,6 +271,10 @@ export const DiagramCanvas = ({ selectedWireColor }: DiagramCanvasProps) => {
         nodeTypes={nodeTypes}
         connectionLineType={ConnectionLineType.SmoothStep}
         fitView
+        fitViewOptions={{ padding: 0.2, maxZoom: 0.8 }}
+        minZoom={0.1}
+        maxZoom={2}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
         deleteKeyCode="Delete"
       >
         <Background />

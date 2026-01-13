@@ -51,8 +51,8 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
         border: '2px solid #48BB78',
         borderRadius: '8px',
         background: '#C6F6D5',
-        minWidth: '220px',
-        maxWidth: '300px',
+        minWidth: '380px',
+        maxWidth: '500px',
       }}
     >
       <Handle type="target" position={Position.Left} />
@@ -111,7 +111,7 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
       </div>
 
       {receiver.ports.length > 0 && (
-        <div style={{ fontSize: '10px' }}>
+        <div style={{ display: 'flex', gap: '6px', fontSize: '10px', flexWrap: 'wrap' }}>
           {receiver.ports.map((port, portIdx) => {
             const remainingPixels = port.maxPixels - port.currentPixels;
             const percentUsed = port.maxPixels > 0 ? (port.currentPixels / port.maxPixels) * 100 : 0;
@@ -128,31 +128,40 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
               <div
                 key={port.id}
                 style={{
-                  padding: '4px',
-                  margin: '3px 0',
+                  padding: '6px',
                   background: 'white',
                   borderRadius: '4px',
                   border: isOverBudget ? '2px solid #E53E3E' : isNearLimit ? '2px solid #DD6B20' : '1px solid #E2E8F0',
+                  minWidth: '85px',
+                  flex: '1 1 auto',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', fontWeight: 'bold' }}>
-                  <span title={`Address: ${fullAddress}`}>{port.name} ({fullAddress})</span>
-                  <span style={{ color: isOverBudget ? '#E53E3E' : isNearLimit ? '#DD6B20' : '#2F855A' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '4px', textAlign: 'center', fontSize: '11px' }}>
+                  <div title={`Address: ${fullAddress}`}>{portNumber}</div>
+                  <div style={{ fontSize: '9px', fontWeight: 'normal', color: '#666' }}>({fullAddress})</div>
+                </div>
+                <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+                  <span style={{
+                    color: isOverBudget ? '#E53E3E' : isNearLimit ? '#DD6B20' : '#2F855A',
+                    fontWeight: 'bold',
+                    fontSize: '10px'
+                  }}>
                     {port.currentPixels}/{port.maxPixels}px
                   </span>
                 </div>
                 {port.models && port.models.length > 0 && (
-                  <div style={{ fontSize: '9px', color: '#666', marginTop: '2px' }}>
+                  <div style={{ fontSize: '8px', color: '#666', borderTop: '1px solid #E2E8F0', paddingTop: '4px' }}>
                     {port.models.map((model, idx) => (
-                      <div key={idx} style={{ paddingLeft: '4px', borderLeft: '2px solid #CBD5E0', marginBottom: '1px' }}>
-                        • {model.name} ({model.pixels}px)
+                      <div key={idx} style={{ marginBottom: '2px', textAlign: 'center' }}>
+                        {model.name}
+                        <div style={{ fontSize: '7px', color: '#999' }}>({model.pixels}px)</div>
                       </div>
                     ))}
                   </div>
                 )}
                 {remainingPixels >= 0 && (
-                  <div style={{ fontSize: '9px', color: '#718096', marginTop: '2px', fontStyle: 'italic' }}>
-                    {remainingPixels}px available
+                  <div style={{ fontSize: '8px', color: '#718096', marginTop: '4px', fontStyle: 'italic', textAlign: 'center', borderTop: '1px solid #E2E8F0', paddingTop: '2px' }}>
+                    {remainingPixels}px left
                   </div>
                 )}
               </div>

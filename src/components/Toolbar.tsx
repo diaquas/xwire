@@ -225,10 +225,10 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
     }
 
     // Layout configuration for spider web topology
-    const centerX = 600;
-    const centerY = 400;
-    const differentialRadius = 250; // Distance from controller to differentials
-    const receiverRadius = 500; // Distance from controller to receivers
+    const centerX = 1500;
+    const centerY = 1000;
+    const differentialRadius = 400; // Distance from controller to differentials
+    const receiverRadius = 1000; // Distance from controller to receivers
 
     availableControllers.forEach((xlController, ctrlIndex) => {
       const controllerId = `controller-${Date.now()}-${ctrlIndex}`;
