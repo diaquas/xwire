@@ -94,6 +94,16 @@ export class XLightsParser {
 
             case 'Single Line':
             case 'Poly Line':
+              // DEBUG: Log Single Line parameters to understand the structure
+              if (controllerInfo.models.length < 10) {
+                console.log(`DEBUG Single Line: ${attrs.name}`, {
+                  parm1: attrs.parm1,
+                  parm2: attrs.parm2,
+                  parm3: attrs.parm3,
+                  PixelCount: attrs.PixelCount,
+                });
+              }
+
               // Single/Poly Line: parm1 (strands) * parm3 (nodes per strand)
               // If parm3 doesn't exist, fall back to just parm1
               const strands = parseInt(attrs.parm1, 10) || 0;
