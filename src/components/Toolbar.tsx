@@ -19,8 +19,8 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
     loadDiagram,
   } = useDiagramStore();
 
-  const [xLightsNetworksPath, setXLightsNetworksPath] = useState('');
-  const [xLightsRgbEffectsPath, setXLightsRgbEffectsPath] = useState('');
+  const [xLightsNetworksPath, setXLightsNetworksPath] = useState('C:\\Holiday Lighting\\2026\\Test Layout\\xlights_networks.xml');
+  const [xLightsRgbEffectsPath, setXLightsRgbEffectsPath] = useState('C:\\Holiday Lighting\\2026\\Test Layout\\xlights_rgbeffects.xml');
   const [isConnected, setIsConnected] = useState(false);
   const [availableControllers, setAvailableControllers] = useState<any[]>([]);
   const [controllerPortInfo, setControllerPortInfo] = useState<any>(null);
