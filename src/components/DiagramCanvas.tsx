@@ -105,6 +105,28 @@ export const DiagramCanvas = ({ selectedWireColor, autoSnapEnabled }: DiagramCan
         style: { width: 340, height: 120 }, // Smaller receiver box
       });
 
+      // Dynamic horizontal positioning: calculate widths for each port column
+      const modelWidth = 130; // Approximate width of a model box
+      const portColumnPadding = 20; // Padding between port columns
+
+      // First pass: calculate horizontal offset for each port based on previous ports' content
+      let currentXOffset = 0;
+      const portXOffsets: number[] = [];
+
+      receiver.ports.forEach((port, portIdx) => {
+        portXOffsets.push(currentXOffset);
+
+        // Calculate width needed for this port's models
+        const modelCount = (port.models || []).length;
+        if (modelCount > 0) {
+          // If there are models, this port needs space for model width + padding
+          currentXOffset += modelWidth + portColumnPadding;
+        } else {
+          // If no models, just add minimal spacing for the port circle
+          currentXOffset += 70; // Space for port circle
+        }
+      });
+
       // Create port nodes as children of receiver
       receiver.ports.forEach((port, portIdx) => {
         const receiverNumber = parseInt(receiver.dipSwitch, 10) || 0;
@@ -139,9 +161,8 @@ export const DiagramCanvas = ({ selectedWireColor, autoSnapEnabled }: DiagramCan
         // Create model nodes as independent nodes (not children of receiver)
         if (port.models && port.models.length > 0) {
           port.models.forEach((model, modelIdx) => {
-            // Position models in absolute coordinates below receiver
-            // Spread horizontally per port to avoid overlap, stack vertically per model
-            const horizontalOffset = portIdx * 130; // 130px horizontal spacing per port
+            // Position models using dynamic horizontal offsets
+            const horizontalOffset = portXOffsets[portIdx]; // Dynamic offset based on previous ports
             const absoluteModelX = receiver.position.x + horizontalOffset + 10; // Aligned with port column
             const absoluteModelY = receiver.position.y + 200 + modelIdx * 90; // Below receiver, stacked vertically with more spacing
 
