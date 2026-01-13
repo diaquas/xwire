@@ -15,6 +15,7 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
     addEthernetSwitch,
     addPowerSupply,
     addLabel,
+    addWire,
     getDiagramData,
     loadDiagram,
   } = useDiagramStore();
@@ -47,10 +48,10 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
       name: 'New Receiver',
       dipSwitch: '0000',
       ports: [
-        { id: 'pA', name: 'Port A', maxPixels: 512, currentPixels: 0 },
-        { id: 'pB', name: 'Port B', maxPixels: 512, currentPixels: 0 },
-        { id: 'pC', name: 'Port C', maxPixels: 512, currentPixels: 0 },
-        { id: 'pD', name: 'Port D', maxPixels: 512, currentPixels: 0 },
+        { id: 'pA', name: 'Port A', maxPixels: 1024, currentPixels: 0 },
+        { id: 'pB', name: 'Port B', maxPixels: 1024, currentPixels: 0 },
+        { id: 'pC', name: 'Port C', maxPixels: 1024, currentPixels: 0 },
+        { id: 'pD', name: 'Port D', maxPixels: 1024, currentPixels: 0 },
       ],
       position: { x: 100, y: 300 },
     };
@@ -218,46 +219,213 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
       return;
     }
 
-    let yPosition = 100;
-    const xSpacing = 350;
-    let xPosition = 100;
+    if (!controllerPortInfo || !controllerPortInfo.models || controllerPortInfo.models.length === 0) {
+      alert('No model data available from rgbeffects file. Please ensure both xlights_networks.xml and xlights_rgbeffects.xml are loaded.');
+      return;
+    }
 
-    availableControllers.forEach((xlController, index) => {
-      // NOTE: Currently creating one "port" per universe from networks XML
-      // This is temporary - universes are NOT the same as physical ports!
-      // TODO: Once we have rgbeffects data, group universes by actual physical ports
-      // For now, showing universes so user can see the data structure
-      const ports = xlController.outputs.map((output: any, portIndex: number) => {
-        const maxPixels = Math.floor(output.channels / 3); // RGB: 3 channels per pixel
+    // Layout configuration for spider web topology
+    const centerX = 600;
+    const centerY = 400;
+    const differentialRadius = 250; // Distance from controller to differentials
+    const receiverRadius = 500; // Distance from controller to receivers
+
+    availableControllers.forEach((xlController, ctrlIndex) => {
+      const controllerId = `controller-${Date.now()}-${ctrlIndex}`;
+      const isHinksPix = xlController.type.toLowerCase().includes('hinkspix');
+
+      // Get models for this controller from rgbeffects data
+      const controllerModels = controllerPortInfo.models.filter(
+        (m: any) => m.controller === xlController.name
+      );
+
+      console.log(`Importing ${xlController.name}: ${controllerModels.length} models found`);
+
+      // Create controller node (HinksPix has no physical pixel ports)
+      const ports = isHinksPix ? [] : xlController.outputs.map((output: any) => {
+        const maxPixels = Math.floor(output.channels / 3);
         return {
           id: `u${output.number}`,
-          name: `Universe ${output.number}`, // Temporarily showing universes
+          name: `Universe ${output.number}`,
           maxPixels: maxPixels,
           currentPixels: 0,
           universe: output.number,
         };
       });
 
-      const newController: Controller = {
-        id: `controller-${Date.now()}-${index}`,
+      const controller: Controller = {
+        id: controllerId,
         name: xlController.name,
         type: xlController.type || 'Unknown',
         ports: ports,
-        position: { x: xPosition, y: yPosition },
+        position: { x: centerX, y: centerY },
       };
 
-      addController(newController);
+      addController(controller);
 
-      // Position next controller to the right
-      xPosition += xSpacing;
-      // Move to next row after 3 controllers
-      if ((index + 1) % 3 === 0) {
-        xPosition = 100;
-        yPosition += 300;
+      if (isHinksPix && controllerModels.length > 0) {
+        // HinksPix setup: Create differentials and receivers with models
+        const differentialCount = 4; // 4 differential boards
+
+        // Group models by universe to create logical receiver groups
+        // Each receiver handles 4 ports (A, B, C, D), each port can have multiple models
+        const receiversData = createReceiversFromModels(controllerModels);
+
+        // Create differential boards in a circle around the controller
+        const differentials: any[] = [];
+        for (let i = 0; i < differentialCount; i++) {
+          const angle = (i / differentialCount) * 2 * Math.PI;
+          const diffX = centerX + differentialRadius * Math.cos(angle);
+          const diffY = centerY + differentialRadius * Math.sin(angle);
+
+          const diffId = `differential-${Date.now()}-${i}`;
+          const differential: Differential = {
+            id: diffId,
+            name: `Differential ${i + 1}`,
+            controllerConnection: controllerId,
+            ports: [
+              { id: `e1-${i}`, name: 'E1', maxPixels: 0, currentPixels: 0 },
+              { id: `e2-${i}`, name: 'E2', maxPixels: 0, currentPixels: 0 },
+              { id: `e3-${i}`, name: 'E3', maxPixels: 0, currentPixels: 0 },
+              { id: `e4-${i}`, name: 'E4', maxPixels: 0, currentPixels: 0 },
+            ],
+            position: { x: diffX, y: diffY },
+          };
+
+          addDifferential(differential);
+          differentials.push(differential);
+
+          // Create blue wire from controller to differential
+          addWire({
+            id: `wire-ctrl-diff-${Date.now()}-${i}`,
+            color: 'blue',
+            from: { nodeId: controllerId },
+            to: { nodeId: diffId },
+            label: 'Ribbon',
+          });
+        }
+
+        // Distribute receivers around in a circle
+        receiversData.forEach((receiverData: any, idx: number) => {
+          const angle = (idx / receiversData.length) * 2 * Math.PI;
+          const recX = centerX + receiverRadius * Math.cos(angle);
+          const recY = centerY + receiverRadius * Math.sin(angle);
+
+          const receiverId = `receiver-${Date.now()}-${idx}`;
+          const receiver: Receiver = {
+            id: receiverId,
+            name: receiverData.name,
+            dipSwitch: receiverData.dipSwitch,
+            ports: receiverData.ports,
+            position: { x: recX, y: recY },
+            controllerConnection: controllerId,
+          };
+
+          addReceiver(receiver);
+
+          // Connect receiver to nearest differential
+          const nearestDiff = differentials[idx % differentials.length];
+          addWire({
+            id: `wire-diff-rec-${Date.now()}-${idx}`,
+            color: 'blue',
+            from: { nodeId: nearestDiff.id },
+            to: { nodeId: receiverId },
+            label: 'CAT5',
+          });
+        });
+
+        alert(`Imported ${xlController.name} with ${receiversData.length} receiver(s) and ${controllerModels.length} model(s)!`);
+      } else {
+        // Non-HinksPix controller: simple layout
+        alert(`Imported ${xlController.name}`);
       }
     });
+  };
 
-    alert(`Imported ${availableControllers.length} controller(s) to diagram!`);
+  // Helper function to group models into receivers
+  const createReceiversFromModels = (models: any[]) => {
+    if (models.length === 0) return [];
+
+    // Sort models by start channel
+    const sortedModels = [...models].sort((a, b) => a.startChannel - b.startChannel);
+
+    // Group models into receivers (every ~4 universe range = 1 receiver with 4 ports)
+    // Each port can handle 1024 pixels (HinksPix v3)
+    const receivers: any[] = [];
+    const portsPerReceiver = 4;
+    const maxPixelsPerPort = 1024;
+
+    // Create a receiver for each logical grouping of models
+    // We'll distribute models across ports based on their pixel counts
+    let currentReceiver: any = null;
+    let currentPortIndex = 0;
+    let receiverIndex = 0;
+
+    const startNewReceiver = () => {
+      receiverIndex++;
+      currentPortIndex = 0;
+      currentReceiver = {
+        name: `Receiver ${receiverIndex}`,
+        dipSwitch: String(receiverIndex - 1).padStart(4, '0'),
+        ports: [
+          { id: `pA-${receiverIndex}`, name: 'Port A', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
+          { id: `pB-${receiverIndex}`, name: 'Port B', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
+          { id: `pC-${receiverIndex}`, name: 'Port C', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
+          { id: `pD-${receiverIndex}`, name: 'Port D', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
+        ],
+      };
+      receivers.push(currentReceiver);
+    };
+
+    startNewReceiver();
+
+    // Distribute models across receiver ports
+    for (const model of sortedModels) {
+      const pixelCount = model.pixelCount || 0;
+
+      if (!currentReceiver) {
+        startNewReceiver();
+      }
+
+      // Try to add model to current port
+      let placed = false;
+      for (let attempts = 0; attempts < portsPerReceiver && !placed; attempts++) {
+        const port = currentReceiver.ports[currentPortIndex];
+        const remainingSpace = port.maxPixels - port.currentPixels;
+
+        if (pixelCount <= remainingSpace) {
+          // Model fits on current port
+          port.models.push({
+            name: model.name,
+            pixels: pixelCount,
+          });
+          port.currentPixels += pixelCount;
+          placed = true;
+        } else {
+          // Move to next port
+          currentPortIndex++;
+          if (currentPortIndex >= portsPerReceiver) {
+            // Start a new receiver
+            startNewReceiver();
+          }
+        }
+      }
+
+      if (!placed) {
+        // Model doesn't fit anywhere, create new receiver
+        startNewReceiver();
+        const port = currentReceiver.ports[0];
+        port.models.push({
+          name: model.name,
+          pixels: pixelCount,
+        });
+        port.currentPixels += pixelCount;
+        currentPortIndex = 0;
+      }
+    }
+
+    // Filter out receivers with no models
+    return receivers.filter(r => r.ports.some((p: any) => p.models.length > 0));
   };
 
   return (
