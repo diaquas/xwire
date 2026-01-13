@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Networks>
+  <Network>
+    <Controller Name="Front Yard Controller" Type="F16V4" Protocol="ws2811" IP="192.168.1.100">
+      <Output Output="1" Description="House Outline" NullPixels="0" StartChannel="1" Channels="3072" Protocol="ws2811"/>
+      <Output Output="2" Description="Tree 1" NullPixels="0" StartChannel="3073" Channels="1536" Protocol="ws2811"/>
+      <Output Output="3" Description="Tree 2" NullPixels="0" StartChannel="4609" Channels="1536" Protocol="ws2811"/>
+      <Output Output="4" Description="Bushes" NullPixels="0" StartChannel="6145" Channels="2048" Protocol="ws2811"/>
+    </Controller>
+
+    <Controller Name="Roof Controller" Type="F16V4" Protocol="ws2811" IP="192.168.1.101">
+      <Output Output="1" Description="Ridge Line" NullPixels="0" StartChannel="8193" Channels="3072" Protocol="ws2811"/>
+      <Output Output="2" Description="Eave 1" NullPixels="0" StartChannel="11265" Channels="2048" Protocol="ws2811"/>
+      <Output Output="3" Description="Eave 2" NullPixels="0" StartChannel="13313" Channels="2048" Protocol="ws2811"/>
+      <Output Output="4" Description="Peak" NullPixels="0" StartChannel="15361" Channels="1024" Protocol="ws2811"/>
+    </Controller>
+
+    <Controller Name="Sidewalk Controller" Type="F16V4" Protocol="ws2811" IP="192.168.1.102">
+      <Output Output="1" Description="Candy Canes Left" NullPixels="0" StartChannel="16385" Channels="1536" Protocol="ws2811"/>
+      <Output Output="2" Description="Candy Canes Right" NullPixels="0" StartChannel="17921" Channels="1536" Protocol="ws2811"/>
+      <Output Output="3" Description="Path Lights" NullPixels="0" StartChannel="19457" Channels="2048" Protocol="ws2811"/>
+      <Output Output="4" Description="Mailbox" NullPixels="0" StartChannel="21505" Channels="512" Protocol="ws2811"/>
+    </Controller>
+
+    <Controller Name="Backyard Controller" Type="F16V4" Protocol="ws2811" IP="192.168.1.103">
+      <Output Output="1" Description="Deck Railing" NullPixels="0" StartChannel="22017" Channels="3072" Protocol="ws2811"/>
+      <Output Output="2" Description="Tree 3" NullPixels="0" StartChannel="25089" Channels="1536" Protocol="ws2811"/>
+      <Output Output="3" Description="Fence Line" NullPixels="0" StartChannel="26625" Channels="2560" Protocol="ws2811"/>
+      <Output Output="4" Description="Patio" NullPixels="0" StartChannel="29185" Channels="1024" Protocol="ws2811"/>
+    </Controller>
+  </Network>
+</Networks>
