@@ -77,19 +77,70 @@ export class XLightsParser {
         let pixelCount = 0;
         const displayAs = attrs.DisplayAs || '';
 
-        // For most models, parm2 is pixel count
-        // But for some types (like Poly Line), we need to look at other params
-        if (attrs.parm2) {
-          pixelCount = parseInt(attrs.parm2, 10);
-        } else if (attrs.parm1) {
-          pixelCount = parseInt(attrs.parm1, 10);
-        }
+        // First check for direct PixelCount attribute (most reliable)
+        if (attrs.PixelCount) {
+          pixelCount = parseInt(attrs.PixelCount, 10);
+        } else {
+          // Handle different DisplayAs types based on xLights conventions
+          switch (displayAs) {
+            case 'Matrix':
+            case 'Vert Matrix':
+            case 'Horiz Matrix':
+              // Matrix: parm1 (height/strands) * parm2 (width/nodes per strand)
+              const height = parseInt(attrs.parm1, 10) || 0;
+              const width = parseInt(attrs.parm2, 10) || 0;
+              pixelCount = height * width;
+              break;
 
-        // Fallback: calculate from string count and pixels per string
-        if (!pixelCount && attrs.parm1 && attrs.parm3) {
-          const stringCount = parseInt(attrs.parm1, 10) || 0;
-          const pixelsPerString = parseInt(attrs.parm3, 10) || 0;
-          pixelCount = stringCount * pixelsPerString;
+            case 'Single Line':
+            case 'Poly Line':
+              // Single/Poly Line: parm1 is node count
+              pixelCount = parseInt(attrs.parm1, 10) || 0;
+              break;
+
+            case 'Arches':
+              // Arches: parm2 is nodes
+              pixelCount = parseInt(attrs.parm2, 10) || 0;
+              break;
+
+            case 'Tree':
+              // Tree: Check multiple possible locations
+              if (attrs.parm1) {
+                pixelCount = parseInt(attrs.parm1, 10) || 0;
+              }
+              break;
+
+            case 'Custom':
+              // Custom: Try parm1 first (often node count), then check CustomModel
+              if (attrs.parm1) {
+                pixelCount = parseInt(attrs.parm1, 10) || 0;
+              }
+              // If we have CustomModel data, count the nodes
+              if (!pixelCount && model.CustomModel?.[0]) {
+                const customData = model.CustomModel[0]._ || model.CustomModel[0];
+                if (typeof customData === 'string') {
+                  // CustomModel data is comma-separated node positions
+                  const nodes = customData.split(',').filter(n => n.trim());
+                  pixelCount = nodes.length / 2; // Each node is X,Y pair
+                }
+              }
+              break;
+
+            default:
+              // Generic fallback: try parm2, then parm1
+              if (attrs.parm2) {
+                pixelCount = parseInt(attrs.parm2, 10);
+              } else if (attrs.parm1) {
+                pixelCount = parseInt(attrs.parm1, 10);
+              }
+
+              // Last fallback: calculate from string count and pixels per string
+              if (!pixelCount && attrs.parm1 && attrs.parm3) {
+                const stringCount = parseInt(attrs.parm1, 10) || 0;
+                const pixelsPerString = parseInt(attrs.parm3, 10) || 0;
+                pixelCount = stringCount * pixelsPerString;
+              }
+          }
         }
 
         // Parse start channel - xLights uses format "!ControllerName:ChannelNumber"
