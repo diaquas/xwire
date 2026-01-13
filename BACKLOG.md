@@ -1,4 +1,4 @@
-# xDiagram Development Backlog
+# xWire Development Backlog
 
 ## 🔴 Critical Issues (Blocking Basic Functionality)
 

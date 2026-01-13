@@ -223,5 +223,5 @@ app.post('/api/diagram', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`xDiagram server running on http://localhost:${PORT}`);
+  console.log(`xWire server running on http://localhost:${PORT}`);
 });

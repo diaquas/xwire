@@ -1,6 +1,6 @@
 # xLights Integration Guide
 
-This guide explains how xDiagram integrates with xLights and how to use the integration effectively.
+This guide explains how xWire integrates with xLights and how to use the integration effectively.
 
 ## Finding Your xLights Network File
 
@@ -18,7 +18,7 @@ To find it in xLights:
 
 ## What Gets Imported
 
-xDiagram reads the following information from your xLights network file:
+xWire reads the following information from your xLights network file:
 
 ### Controller Information
 - **Name**: The controller name you set in xLights
@@ -38,7 +38,7 @@ For each controller output:
 
 ## Max Pixels Calculation
 
-xDiagram automatically calculates the maximum number of pixels per port:
+xWire automatically calculates the maximum number of pixels per port:
 
 ```
 Max Pixels = Total Channels ÷ Channels Per Pixel
@@ -54,10 +54,10 @@ For example:
 
 ## Auto-Update Feature
 
-When you connect xDiagram to your xLights network file:
+When you connect xWire to your xLights network file:
 
-1. xDiagram creates a file watcher on the XML file
-2. Any time you save changes in xLights, xDiagram detects the change
+1. xWire creates a file watcher on the XML file
+2. Any time you save changes in xLights, xWire detects the change
 3. The file is automatically re-parsed
 4. Your diagram can be updated with the new configuration
 
@@ -69,7 +69,7 @@ This is especially useful when:
 
 ## Receiver Configuration
 
-xLights doesn't directly track receiver information (like differential receivers with DIP switches), so you'll need to add these manually in xDiagram:
+xLights doesn't directly track receiver information (like differential receivers with DIP switches), so you'll need to add these manually in xWire:
 
 1. Add a Receiver node
 2. Set the DIP switch setting (e.g., "0001", "0010", etc.)
@@ -83,9 +83,9 @@ xLights doesn't directly track receiver information (like differential receivers
    - Configure outputs and assign pixel counts
    - Set up your props and models
 
-2. **Export to xDiagram**
+2. **Export to xWire**
    - Copy the path to your `xlights_networks.xml` file
-   - In xDiagram, paste the path and click "Connect to xLights"
+   - In xWire, paste the path and click "Connect to xLights"
    - Controllers will be imported (though you may need to manually add them to the diagram initially)
 
 3. **Build your wiring diagram**
@@ -95,7 +95,7 @@ xLights doesn't directly track receiver information (like differential receivers
    - Connect everything with colored wires
 
 4. **Keep it synchronized**
-   - As you update your xLights configuration, xDiagram will detect changes
+   - As you update your xLights configuration, xWire will detect changes
    - You may need to manually update the diagram layout, but the data will be current
 
 ## Troubleshooting
@@ -108,7 +108,7 @@ xLights doesn't directly track receiver information (like differential receivers
 ### Auto-update not working
 - Ensure the file path is correct
 - Check that xLights is actually saving to that file
-- Restart the xDiagram backend server
+- Restart the xWire backend server
 
 ### Controller data not showing
 - Verify the XML file is valid xLights format
@@ -117,7 +117,7 @@ xLights doesn't directly track receiver information (like differential receivers
 
 ## XML File Format
 
-xDiagram expects the standard xLights network file format:
+xWire expects the standard xLights network file format:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -136,10 +136,10 @@ See `examples/xlights_networks.xml` for a complete example.
 ## Best Practices
 
 1. **Keep xLights as source of truth**: Use xLights for controller configuration
-2. **Use xDiagram for wiring**: Add the physical wiring details in xDiagram
+2. **Use xWire for wiring**: Add the physical wiring details in xWire
 3. **Save regularly**: Click Save after making diagram changes
 4. **Version control**: Consider keeping your `diagram-data.json` in version control
-5. **Document DIP switches**: Always note receiver DIP switch settings in xDiagram
+5. **Document DIP switches**: Always note receiver DIP switch settings in xWire
 6. **Label everything**: Use descriptive names and labels for easy reference
 
 ## Advanced: Custom Parsers

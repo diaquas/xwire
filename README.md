@@ -1,4 +1,4 @@
-# xDiagram - xLights Wiring Diagram Tool
+# xWire - xLights Wiring Diagram Tool
 
 A visual wiring diagram tool that integrates with xLights to help plan and document your Christmas light show wiring. Create interactive diagrams with controllers, receivers, power supplies, and color-coded wires.
 
@@ -60,9 +60,9 @@ Use the toolbar to add components:
 
 1. In xLights, export your controller configuration
 2. Locate the `xlights_networks.xml` file (usually in your show directory)
-3. In xDiagram toolbar, enter the path to this file
+3. In xWire toolbar, enter the path to this file
 4. Click "Connect to xLights"
-5. xDiagram will now auto-update when you change configurations in xLights
+5. xWire will now auto-update when you change configurations in xLights
 
 ### 4. Save Your Work
 
@@ -72,7 +72,7 @@ Use the toolbar to add components:
 
 ## xLights Integration
 
-xDiagram parses your xLights network configuration to extract:
+xWire parses your xLights network configuration to extract:
 
 - Controller names and types
 - Output ports and their configurations
@@ -80,12 +80,12 @@ xDiagram parses your xLights network configuration to extract:
 - Protocol information
 - Start channels
 
-When you modify your xLights setup, xDiagram automatically detects changes and can update the diagram with new controller information.
+When you modify your xLights setup, xWire automatically detects changes and can update the diagram with new controller information.
 
 ## Project Structure
 
 ```
-xdiagram/
+xwire/
 ├── src/
 │   ├── components/
 │   │   ├── nodes/           # Custom node components

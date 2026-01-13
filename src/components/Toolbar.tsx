@@ -560,7 +560,7 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
         maxWidth: '300px',
       }}
     >
-      <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>xDiagram Toolbar</h3>
+      <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>xWire Toolbar</h3>
 
       <div style={{ marginBottom: '15px' }}>
         <h4 style={{ fontSize: '12px', margin: '0 0 5px 0', color: '#666' }}>
