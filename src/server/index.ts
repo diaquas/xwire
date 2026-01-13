@@ -1,0 +1,126 @@
+import express from 'express';
+import cors from 'cors';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { FileWatcher } from './file-watcher.js';
+import { XLightsParser } from './xlights-parser.js';
+
+const app = express();
+const PORT = 3001;
+
+app.use(cors());
+app.use(express.json());
+
+const fileWatcher = new FileWatcher();
+const parser = new XLightsParser();
+
+let currentControllers: any[] = [];
+
+// WebSocket-like connections (we'll use Server-Sent Events for simplicity)
+const clients: express.Response[] = [];
+
+fileWatcher.on('update', (controllers) => {
+  currentControllers = controllers;
+  // Notify all connected clients
+  clients.forEach((client) => {
+    client.write(`data: ${JSON.stringify({ type: 'update', controllers })}\n\n`);
+  });
+});
+
+fileWatcher.on('error', (error) => {
+  console.error('File watcher error:', error);
+});
+
+// API Routes
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+app.post('/api/xlights/watch', async (req, res) => {
+  const { filePath } = req.body;
+
+  if (!filePath) {
+    return res.status(400).json({ error: 'filePath is required' });
+  }
+
+  try {
+    // Check if file exists
+    await fs.access(filePath);
+    fileWatcher.watch(filePath);
+    res.json({ success: true, message: 'Now watching xLights file' });
+  } catch (error) {
+    res.status(404).json({ error: 'File not found' });
+  }
+});
+
+app.get('/api/xlights/controllers', (req, res) => {
+  res.json(currentControllers);
+});
+
+app.post('/api/xlights/parse', async (req, res) => {
+  const { filePath } = req.body;
+
+  if (!filePath) {
+    return res.status(400).json({ error: 'filePath is required' });
+  }
+
+  try {
+    const controllers = await parser.parseNetworkFile(filePath);
+    currentControllers = controllers;
+    res.json(controllers);
+  } catch (error) {
+    res.status(500).json({ error: 'Error parsing xLights file' });
+  }
+});
+
+// Server-Sent Events for real-time updates
+app.get('/api/xlights/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  clients.push(res);
+
+  // Send current controllers immediately
+  res.write(`data: ${JSON.stringify({ type: 'update', controllers: currentControllers })}\n\n`);
+
+  req.on('close', () => {
+    const index = clients.indexOf(res);
+    if (index !== -1) {
+      clients.splice(index, 1);
+    }
+  });
+});
+
+// Save/load diagram data
+const DIAGRAM_DATA_FILE = path.join(process.cwd(), 'diagram-data.json');
+
+app.get('/api/diagram', async (req, res) => {
+  try {
+    const data = await fs.readFile(DIAGRAM_DATA_FILE, 'utf-8');
+    res.json(JSON.parse(data));
+  } catch (error) {
+    // Return empty diagram if file doesn't exist
+    res.json({
+      controllers: [],
+      receivers: [],
+      powerSupplies: [],
+      wires: [],
+      labels: [],
+    });
+  }
+});
+
+app.post('/api/diagram', async (req, res) => {
+  try {
+    await fs.writeFile(DIAGRAM_DATA_FILE, JSON.stringify(req.body, null, 2));
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Error saving diagram' });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`xDiagram server running on http://localhost:${PORT}`);
+});
