@@ -47,17 +47,64 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
   return (
     <div
       style={{
-        padding: '10px',
+        padding: '12px',
         border: '2px solid #48BB78',
         borderRadius: '8px',
         background: '#C6F6D5',
-        minWidth: '380px',
-        maxWidth: '500px',
+        minWidth: '200px',
+        maxWidth: '250px',
         position: 'relative',
       }}
     >
-      <Handle type="target" position={Position.Left} id="receiver-input" />
-      <Handle type="target" position={Position.Top} id="receiver-input-top" />
+      {/* Input connection square (left side) */}
+      <div
+        style={{
+          position: 'absolute',
+          left: '-12px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: '20px',
+          height: '20px',
+          border: '2px solid #48BB78',
+          background: '#3182CE',
+          borderRadius: '2px',
+        }}
+      >
+        <Handle type="target" position={Position.Left} id="receiver-input" style={{ opacity: 0 }} />
+      </div>
+
+      {/* Output connection squares (right side) */}
+      <div
+        style={{
+          position: 'absolute',
+          right: '-12px',
+          top: '35%',
+          transform: 'translateY(-50%)',
+          width: '20px',
+          height: '20px',
+          border: '2px solid #48BB78',
+          background: 'white',
+          borderRadius: '2px',
+        }}
+      >
+        <Handle type="source" position={Position.Right} id="receiver-output-1" style={{ opacity: 0 }} />
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          right: '-12px',
+          top: '65%',
+          transform: 'translateY(-50%)',
+          width: '20px',
+          height: '20px',
+          border: '2px solid #48BB78',
+          background: 'white',
+          borderRadius: '2px',
+        }}
+      >
+        <Handle type="source" position={Position.Right} id="receiver-output-2" style={{ opacity: 0 }} />
+      </div>
 
       {/* Receiver name - editable on double-click */}
       {isEditing ? (
@@ -100,107 +147,38 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
         style={{
           fontSize: '10px',
           color: '#2F855A',
-          marginBottom: '12px',
+          marginBottom: '8px',
           fontStyle: 'italic',
-          borderBottom: '2px solid #9AE6B4',
-          paddingBottom: '8px',
+          textAlign: 'center',
         }}
       >
         {hierarchyText}
       </div>
 
-      {/* Ports section header */}
+      {/* Receiver number display */}
       <div
         style={{
-          fontSize: '9px',
-          color: '#2F855A',
-          marginBottom: '6px',
+          fontSize: '48px',
           fontWeight: 'bold',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
+          color: '#22543D',
+          textAlign: 'center',
+          marginTop: '8px',
         }}
       >
-        Ports
+        {receiverNumber}
       </div>
 
-      {receiver.ports.length > 0 && (
-        <div style={{ display: 'flex', gap: '6px', fontSize: '10px', flexWrap: 'wrap' }}>
-          {receiver.ports.map((port, portIdx) => {
-            const remainingPixels = port.maxPixels - port.currentPixels;
-            const percentUsed = port.maxPixels > 0 ? (port.currentPixels / port.maxPixels) * 100 : 0;
-            const isOverBudget = percentUsed > 100;
-            const isNearLimit = percentUsed > 80 && percentUsed <= 100;
-
-            // Build full address: DifferentialPort:Receiver:Port (e.g., "1:0:1")
-            const portNumber = portIdx + 1;
-            const fullAddress = receiver.differentialPortNumber
-              ? `${receiver.differentialPortNumber}:${receiverNumber}:${portNumber}`
-              : `${receiverNumber}:${portNumber}`;
-
-            // Calculate handle position for this port (evenly spaced at bottom)
-            const handlePosition = ((portIdx + 1) / (receiver.ports.length + 1)) * 100;
-
-            return (
-              <div
-                key={port.id}
-                style={{
-                  padding: '6px',
-                  background: 'white',
-                  borderRadius: '4px',
-                  border: isOverBudget ? '2px solid #E53E3E' : isNearLimit ? '2px solid #DD6B20' : '1px solid #E2E8F0',
-                  minWidth: '85px',
-                  flex: '1 1 auto',
-                  position: 'relative',
-                }}
-              >
-                {/* Individual handle for this specific port */}
-                <Handle
-                  type="source"
-                  position={Position.Bottom}
-                  id={port.id}
-                  style={{
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: isOverBudget ? '#E53E3E' : isNearLimit ? '#DD6B20' : '#48BB78',
-                    width: '10px',
-                    height: '10px',
-                    border: '2px solid #22543D',
-                    bottom: '-5px',
-                  }}
-                />
-                <div style={{ fontWeight: 'bold', marginBottom: '4px', textAlign: 'center', fontSize: '11px' }}>
-                  <div title={`Address: ${fullAddress}`}>{portNumber}</div>
-                  <div style={{ fontSize: '9px', fontWeight: 'normal', color: '#666' }}>({fullAddress})</div>
-                </div>
-                <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-                  <span style={{
-                    color: isOverBudget ? '#E53E3E' : isNearLimit ? '#DD6B20' : '#2F855A',
-                    fontWeight: 'bold',
-                    fontSize: '10px'
-                  }}>
-                    {port.currentPixels}/{port.maxPixels}px
-                  </span>
-                </div>
-                {port.models && port.models.length > 0 && (
-                  <div style={{ fontSize: '8px', color: '#666', borderTop: '1px solid #E2E8F0', paddingTop: '4px' }}>
-                    {port.models.map((model, idx) => (
-                      <div key={idx} style={{ marginBottom: '2px', textAlign: 'center' }}>
-                        {model.name}
-                        <div style={{ fontSize: '7px', color: '#999' }}>({model.pixels}px)</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {remainingPixels >= 0 && (
-                  <div style={{ fontSize: '8px', color: '#718096', marginTop: '4px', fontStyle: 'italic', textAlign: 'center', borderTop: '1px solid #E2E8F0', paddingTop: '2px' }}>
-                    {remainingPixels}px left
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* Port count indicator */}
+      <div
+        style={{
+          fontSize: '10px',
+          color: '#2F855A',
+          textAlign: 'center',
+          marginTop: '8px',
+        }}
+      >
+        {receiver.ports.length} Ports
+      </div>
     </div>
   );
 });

@@ -305,49 +305,86 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
           });
         }
 
-        // Distribute receivers around in a circle
+        // Group receivers by differential port for daisy-chaining
+        const receiversByPort: { [key: number]: any[] } = {};
         receiversData.forEach((receiverData: any, idx: number) => {
-          const angle = (idx / receiversData.length) * 2 * Math.PI;
-          const recX = centerX + receiverRadius * Math.cos(angle);
-          const recY = centerY + receiverRadius * Math.sin(angle);
-
           // Calculate differential port number (1-16, cycling through 16 ports)
-          // 4 differentials × 4 ports each = 16 total differential ports
           const differentialPortNumber = (idx % 16) + 1;
 
-          // Determine which differential (0-3) and which port on it (0-3)
+          if (!receiversByPort[differentialPortNumber]) {
+            receiversByPort[differentialPortNumber] = [];
+          }
+          receiversByPort[differentialPortNumber].push(receiverData);
+        });
+
+        // Process each differential port's daisy chain
+        Object.keys(receiversByPort).forEach((portNumStr) => {
+          const differentialPortNumber = parseInt(portNumStr, 10);
+          const receiversInChain = receiversByPort[differentialPortNumber];
+
+          // Determine which differential and port
           const diffIndex = Math.floor((differentialPortNumber - 1) / 4);
           const portIndex = (differentialPortNumber - 1) % 4;
-          const nearestDiff = differentials[diffIndex];
+          const differential = differentials[diffIndex];
+          const diffPortId = differential.ports[portIndex].id;
 
-          // Get the specific differential port ID (e1, e2, e3, or e4)
-          const diffPortId = nearestDiff.ports[portIndex].id;
+          // Calculate base position for this daisy chain (spread around circle)
+          const chainAngle = ((differentialPortNumber - 1) / 16) * 2 * Math.PI;
+          const baseX = centerX + receiverRadius * Math.cos(chainAngle);
+          const baseY = centerY + receiverRadius * Math.sin(chainAngle);
 
-          // For now, assign all receivers as receiver #0 on their differential port
-          // (daisy-chaining with multiple receivers per port will be implemented later)
-          const receiverNumber = 0;
+          // Track receiver IDs in this chain for wiring
+          const chainReceiverIds: string[] = [];
 
-          const receiverId = `receiver-${Date.now()}-${idx}`;
-          const receiver: Receiver = {
-            id: receiverId,
-            name: receiverData.name,
-            dipSwitch: String(receiverNumber).padStart(4, '0'), // "0000" for receiver 0
-            differentialPortNumber: differentialPortNumber,
-            ports: receiverData.ports,
-            position: { x: recX, y: recY },
-            controllerConnection: controllerId,
-            differentialConnection: nearestDiff.id,
-          };
+          // Position receivers in a line radiating outward from the differential port
+          receiversInChain.forEach((receiverData: any, chainIdx: number) => {
+            const receiverNumber = chainIdx; // 0, 1, 2, ... in the daisy chain
 
-          addReceiver(receiver);
+            // Offset each subsequent receiver further out in the chain (increased spacing for ports)
+            const chainOffset = chainIdx * 350; // 350px spacing for receiver + ports
+            const recX = baseX + chainOffset * Math.cos(chainAngle);
+            const recY = baseY + chainOffset * Math.sin(chainAngle);
 
-          // Connect wire from specific differential port to receiver input
-          addWire({
-            id: `wire-diff-rec-${Date.now()}-${idx}`,
-            color: 'blue',
-            from: { nodeId: nearestDiff.id, portId: diffPortId },
-            to: { nodeId: receiverId, portId: 'receiver-input' },
-            label: 'CAT5',
+            const timestamp = Date.now();
+            const receiverId = `receiver-${timestamp}-${differentialPortNumber}-${chainIdx}`;
+            chainReceiverIds.push(receiverId);
+
+            const receiver: Receiver = {
+              id: receiverId,
+              name: receiverData.name,
+              dipSwitch: String(receiverNumber).padStart(4, '0'), // "0000", "0001", "0002", etc.
+              differentialPortNumber: differentialPortNumber,
+              ports: receiverData.ports,
+              position: { x: recX, y: recY },
+              controllerConnection: controllerId,
+              differentialConnection: differential.id,
+            };
+
+            addReceiver(receiver);
+
+            // Port nodes are automatically created by DiagramCanvas based on receiver.ports
+
+            if (chainIdx === 0) {
+              // First receiver in chain: connect from differential port
+              addWire({
+                id: `wire-diff-rec-${timestamp}-${differentialPortNumber}-${chainIdx}`,
+                color: 'blue',
+                from: { nodeId: differential.id, portId: diffPortId },
+                to: { nodeId: receiverId, portId: 'receiver-input' },
+                label: 'CAT5',
+              });
+            } else {
+              // Subsequent receivers: connect from previous receiver in chain
+              const prevReceiverId = chainReceiverIds[chainIdx - 1];
+              // Use output-1 for first daisy chain output
+              addWire({
+                id: `wire-chain-${timestamp}-${differentialPortNumber}-${chainIdx}`,
+                color: 'blue',
+                from: { nodeId: prevReceiverId, portId: 'receiver-output-1' },
+                to: { nodeId: receiverId, portId: 'receiver-input' },
+                label: `Daisy ${receiverNumber}`,
+              });
+            }
           });
         });
 

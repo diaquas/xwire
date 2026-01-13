@@ -19,6 +19,7 @@ import { DifferentialNode } from './nodes/DifferentialNode';
 import { EthernetSwitchNode } from './nodes/EthernetSwitchNode';
 import { PowerSupplyNode } from './nodes/PowerSupplyNode';
 import { LabelNode } from './nodes/LabelNode';
+import { PortNode } from './nodes/PortNode';
 import { useDiagramStore } from '../store/diagramStore';
 import { WireColor } from '../types/diagram';
 
@@ -29,6 +30,7 @@ const nodeTypes = {
   ethernetSwitch: EthernetSwitchNode,
   powerSupply: PowerSupplyNode,
   label: LabelNode,
+  port: PortNode,
 };
 
 const getWireColor = (color: WireColor): string => {
@@ -92,6 +94,33 @@ export const DiagramCanvas = ({ selectedWireColor }: DiagramCanvasProps) => {
         type: 'receiver',
         position: receiver.position,
         data: { receiver },
+      });
+
+      // Create port nodes for each receiver port
+      receiver.ports.forEach((port, portIdx) => {
+        const receiverNumber = parseInt(receiver.dipSwitch, 10) || 0;
+        const portNumber = portIdx + 1;
+        const fullAddress = receiver.differentialPortNumber
+          ? `${receiver.differentialPortNumber}:${receiverNumber}:${portNumber}`
+          : `${receiverNumber}:${portNumber}`;
+
+        // Position ports in a row below the receiver
+        const portX = receiver.position.x + (portIdx - 1.5) * 80;
+        const portY = receiver.position.y + 180;
+
+        nodes.push({
+          id: `${receiver.id}-port-${portIdx}`,
+          type: 'port',
+          position: { x: portX, y: portY },
+          data: {
+            portNumber,
+            fullAddress,
+            maxPixels: port.maxPixels,
+            currentPixels: port.currentPixels,
+            models: port.models || [],
+            receiverId: receiver.id,
+          },
+        });
       });
     });
 
