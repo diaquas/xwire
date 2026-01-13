@@ -1,11 +1,17 @@
 export type WireColor = 'red' | 'black' | 'blue';
 
+export interface PortModel {
+  name: string;
+  pixels: number;
+}
+
 export interface Port {
   id: string;
   name: string;
   maxPixels: number;
   currentPixels: number;
   universe?: number; // xLights universe number (optional metadata)
+  models?: PortModel[]; // Models connected to this port
 }
 
 export interface Controller {
