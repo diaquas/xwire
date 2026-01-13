@@ -64,11 +64,31 @@ export class XLightsParser {
           continue;
         }
 
+        // Parse pixel count - different model types store this differently
+        let pixelCount = 0;
+        const displayAs = attrs.DisplayAs || '';
+
+        // For most models, parm2 is pixel count
+        // But for some types (like Poly Line), we need to look at other params
+        if (attrs.parm2) {
+          pixelCount = parseInt(attrs.parm2, 10);
+        } else if (attrs.parm1) {
+          pixelCount = parseInt(attrs.parm1, 10);
+        }
+
+        // Fallback: calculate from string count and pixels per string
+        if (!pixelCount && attrs.parm1 && attrs.parm3) {
+          const stringCount = parseInt(attrs.parm1, 10) || 0;
+          const pixelsPerString = parseInt(attrs.parm3, 10) || 0;
+          pixelCount = stringCount * pixelsPerString;
+        }
+
         const modelInfo = {
           name: attrs.name || attrs.Name,
           controller: controllerName,
           startChannel: parseInt(attrs.StartChannel || '0', 10),
-          pixelCount: parseInt(attrs.parm2 || attrs.parm1 || '0', 10), // parm2 is usually pixel count
+          pixelCount: pixelCount,
+          displayAs: displayAs,
           protocol: model.ControllerConnection?.[0]?.$?.Protocol || 'ws2811',
         };
 
@@ -93,9 +113,16 @@ export class XLightsParser {
         if (ctrl.models.length > 0) {
           const minChannel = ctrl.models[0].startChannel;
           const lastModel = ctrl.models[ctrl.models.length - 1];
-          const maxChannel = lastModel.startChannel + (lastModel.pixelCount * 3); // RGB = 3 channels
+          const lastModelChannels = lastModel.pixelCount * 3; // 1 pixel = 3 channels (RGB)
+          const maxChannel = lastModel.startChannel + lastModelChannels - 1;
           ctrl.channelRanges = [minChannel, maxChannel];
           ctrl.totalModels = ctrl.models.length;
+
+          // Calculate universe range (510 channels per universe)
+          const minUniverse = Math.floor((minChannel - 1) / 510) + 1;
+          const maxUniverse = Math.floor((maxChannel - 1) / 510) + 1;
+          ctrl.universeRange = [minUniverse, maxUniverse];
+          ctrl.totalUniverses = maxUniverse - minUniverse + 1;
         }
       }
     }
@@ -106,7 +133,16 @@ export class XLightsParser {
     // Log summary for each controller
     for (const ctrlName in controllerInfo.controllers) {
       const ctrl = controllerInfo.controllers[ctrlName];
-      console.log(`  ${ctrlName}: ${ctrl.totalModels} models, channels ${ctrl.channelRanges[0]}-${ctrl.channelRanges[1]}`);
+      console.log(`  ${ctrlName}: ${ctrl.totalModels} models`);
+      console.log(`    Channels: ${ctrl.channelRanges[0]}-${ctrl.channelRanges[1]}`);
+      console.log(`    Universes: ${ctrl.universeRange[0]}-${ctrl.universeRange[1]} (${ctrl.totalUniverses} total)`);
+
+      // Debug: Show first 3 models for each controller
+      const sampleModels = ctrl.models.slice(0, 3);
+      sampleModels.forEach((m: any) => {
+        const modelUniv = Math.floor((m.startChannel - 1) / 510) + 1;
+        console.log(`    - ${m.name}: ch ${m.startChannel} (U${modelUniv}), ${m.pixelCount} pixels, ${m.pixelCount * 3} channels (${m.displayAs})`);
+      });
     }
 
     return controllerInfo;

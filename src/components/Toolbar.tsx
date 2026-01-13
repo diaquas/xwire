@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useDiagramStore } from '../store/diagramStore';
-import { Controller, Receiver, PowerSupply, Label, WireColor } from '../types/diagram';
+import { Controller, Receiver, Differential, EthernetSwitch, PowerSupply, Label, WireColor } from '../types/diagram';
 
 interface ToolbarProps {
   selectedWireColor: WireColor;
@@ -11,6 +11,8 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
   const {
     addController,
     addReceiver,
+    addDifferential,
+    addEthernetSwitch,
     addPowerSupply,
     addLabel,
     getDiagramData,
@@ -48,10 +50,36 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
         { id: 'pA', name: 'Port A', maxPixels: 512, currentPixels: 0 },
         { id: 'pB', name: 'Port B', maxPixels: 512, currentPixels: 0 },
         { id: 'pC', name: 'Port C', maxPixels: 512, currentPixels: 0 },
+        { id: 'pD', name: 'Port D', maxPixels: 512, currentPixels: 0 },
       ],
       position: { x: 100, y: 300 },
     };
     addReceiver(newReceiver);
+  };
+
+  const handleAddDifferential = () => {
+    const newDifferential: Differential = {
+      id: `differential-${Date.now()}`,
+      name: 'Differential',
+      ports: [
+        { id: 'e1', name: 'E1', maxPixels: 0, currentPixels: 0 },
+        { id: 'e2', name: 'E2', maxPixels: 0, currentPixels: 0 },
+        { id: 'e3', name: 'E3', maxPixels: 0, currentPixels: 0 },
+        { id: 'e4', name: 'E4', maxPixels: 0, currentPixels: 0 },
+      ],
+      position: { x: 400, y: 100 },
+    };
+    addDifferential(newDifferential);
+  };
+
+  const handleAddEthernetSwitch = () => {
+    const newSwitch: EthernetSwitch = {
+      id: `switch-${Date.now()}`,
+      name: 'Ethernet Switch',
+      portCount: 8,
+      position: { x: 100, y: 500 },
+    };
+    addEthernetSwitch(newSwitch);
   };
 
   const handleAddPowerSupply = () => {
@@ -258,6 +286,12 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
           </button>
           <button onClick={handleAddReceiver} style={buttonStyle}>
             + Receiver
+          </button>
+          <button onClick={handleAddDifferential} style={buttonStyle}>
+            + Differential
+          </button>
+          <button onClick={handleAddEthernetSwitch} style={buttonStyle}>
+            + Ethernet Switch
           </button>
           <button onClick={handleAddPowerSupply} style={buttonStyle}>
             + Power Supply

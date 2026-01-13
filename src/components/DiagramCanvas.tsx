@@ -15,6 +15,8 @@ import 'reactflow/dist/style.css';
 
 import { ControllerNode } from './nodes/ControllerNode';
 import { ReceiverNode } from './nodes/ReceiverNode';
+import { DifferentialNode } from './nodes/DifferentialNode';
+import { EthernetSwitchNode } from './nodes/EthernetSwitchNode';
 import { PowerSupplyNode } from './nodes/PowerSupplyNode';
 import { LabelNode } from './nodes/LabelNode';
 import { useDiagramStore } from '../store/diagramStore';
@@ -23,6 +25,8 @@ import { WireColor } from '../types/diagram';
 const nodeTypes = {
   controller: ControllerNode,
   receiver: ReceiverNode,
+  differential: DifferentialNode,
+  ethernetSwitch: EthernetSwitchNode,
   powerSupply: PowerSupplyNode,
   label: LabelNode,
 };
@@ -48,12 +52,16 @@ export const DiagramCanvas = ({ selectedWireColor }: DiagramCanvasProps) => {
   const {
     controllers,
     receivers,
+    differentials,
+    ethernetSwitches,
     powerSupplies,
     labels,
     wires,
     addWire,
     updateController,
     updateReceiver,
+    updateDifferential,
+    updateEthernetSwitch,
     updatePowerSupply,
     updateLabel,
   } = useDiagramStore();
@@ -80,6 +88,24 @@ export const DiagramCanvas = ({ selectedWireColor }: DiagramCanvasProps) => {
       });
     });
 
+    differentials.forEach((differential) => {
+      nodes.push({
+        id: differential.id,
+        type: 'differential',
+        position: differential.position,
+        data: { differential },
+      });
+    });
+
+    ethernetSwitches.forEach((ethernetSwitch) => {
+      nodes.push({
+        id: ethernetSwitch.id,
+        type: 'ethernetSwitch',
+        position: ethernetSwitch.position,
+        data: { ethernetSwitch },
+      });
+    });
+
     powerSupplies.forEach((powerSupply) => {
       nodes.push({
         id: powerSupply.id,
@@ -100,7 +126,7 @@ export const DiagramCanvas = ({ selectedWireColor }: DiagramCanvasProps) => {
     });
 
     return nodes;
-  }, [controllers, receivers, powerSupplies, labels]);
+  }, [controllers, receivers, differentials, ethernetSwitches, powerSupplies, labels]);
 
   // Convert wires to React Flow edges
   const initialEdges: Edge[] = useMemo(() => {
@@ -177,13 +203,17 @@ export const DiagramCanvas = ({ selectedWireColor }: DiagramCanvasProps) => {
         updateController(node.id, { position });
       } else if (nodeType === 'receiver') {
         updateReceiver(node.id, { position });
+      } else if (nodeType === 'differential') {
+        updateDifferential(node.id, { position });
+      } else if (nodeType === 'ethernetSwitch') {
+        updateEthernetSwitch(node.id, { position });
       } else if (nodeType === 'powerSupply') {
         updatePowerSupply(node.id, { position });
       } else if (nodeType === 'label') {
         updateLabel(node.id, { position });
       }
     },
-    [updateController, updateReceiver, updatePowerSupply, updateLabel]
+    [updateController, updateReceiver, updateDifferential, updateEthernetSwitch, updatePowerSupply, updateLabel]
   );
 
   return (

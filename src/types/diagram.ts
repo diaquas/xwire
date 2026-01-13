@@ -26,6 +26,21 @@ export interface Receiver {
   controllerConnection?: string;
 }
 
+export interface Differential {
+  id: string;
+  name: string;
+  controllerConnection?: string; // Which controller this differential belongs to
+  ports: Port[]; // 4 ethernet ports (CAT5 outputs to receivers)
+  position: { x: number; y: number };
+}
+
+export interface EthernetSwitch {
+  id: string;
+  name: string;
+  portCount: number;
+  position: { x: number; y: number };
+}
+
 export interface PowerSupply {
   id: string;
   name: string;
@@ -51,6 +66,8 @@ export interface Wire {
 export interface DiagramData {
   controllers: Controller[];
   receivers: Receiver[];
+  differentials: Differential[];
+  ethernetSwitches: EthernetSwitch[];
   powerSupplies: PowerSupply[];
   wires: Wire[];
   labels: Label[];

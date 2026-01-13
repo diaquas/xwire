@@ -1,9 +1,11 @@
 import { create } from 'zustand';
-import { Controller, Receiver, PowerSupply, Wire, Label, DiagramData } from '../types/diagram';
+import { Controller, Receiver, Differential, EthernetSwitch, PowerSupply, Wire, Label, DiagramData } from '../types/diagram';
 
 interface DiagramStore {
   controllers: Controller[];
   receivers: Receiver[];
+  differentials: Differential[];
+  ethernetSwitches: EthernetSwitch[];
   powerSupplies: PowerSupply[];
   wires: Wire[];
   labels: Label[];
@@ -16,6 +18,14 @@ interface DiagramStore {
   addReceiver: (receiver: Receiver) => void;
   updateReceiver: (id: string, updates: Partial<Receiver>) => void;
   removeReceiver: (id: string) => void;
+
+  addDifferential: (differential: Differential) => void;
+  updateDifferential: (id: string, updates: Partial<Differential>) => void;
+  removeDifferential: (id: string) => void;
+
+  addEthernetSwitch: (ethernetSwitch: EthernetSwitch) => void;
+  updateEthernetSwitch: (id: string, updates: Partial<EthernetSwitch>) => void;
+  removeEthernetSwitch: (id: string) => void;
 
   addPowerSupply: (powerSupply: PowerSupply) => void;
   updatePowerSupply: (id: string, updates: Partial<PowerSupply>) => void;
@@ -36,6 +46,8 @@ interface DiagramStore {
 export const useDiagramStore = create<DiagramStore>((set, get) => ({
   controllers: [],
   receivers: [],
+  differentials: [],
+  ethernetSwitches: [],
   powerSupplies: [],
   wires: [],
   labels: [],
@@ -69,6 +81,38 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
   removeReceiver: (id) =>
     set((state) => ({
       receivers: state.receivers.filter((r) => r.id !== id),
+      wires: state.wires.filter((w) => w.from.nodeId !== id && w.to.nodeId !== id),
+    })),
+
+  addDifferential: (differential) =>
+    set((state) => ({ differentials: [...state.differentials, differential] })),
+
+  updateDifferential: (id, updates) =>
+    set((state) => ({
+      differentials: state.differentials.map((d) =>
+        d.id === id ? { ...d, ...updates } : d
+      ),
+    })),
+
+  removeDifferential: (id) =>
+    set((state) => ({
+      differentials: state.differentials.filter((d) => d.id !== id),
+      wires: state.wires.filter((w) => w.from.nodeId !== id && w.to.nodeId !== id),
+    })),
+
+  addEthernetSwitch: (ethernetSwitch) =>
+    set((state) => ({ ethernetSwitches: [...state.ethernetSwitches, ethernetSwitch] })),
+
+  updateEthernetSwitch: (id, updates) =>
+    set((state) => ({
+      ethernetSwitches: state.ethernetSwitches.map((e) =>
+        e.id === id ? { ...e, ...updates } : e
+      ),
+    })),
+
+  removeEthernetSwitch: (id) =>
+    set((state) => ({
+      ethernetSwitches: state.ethernetSwitches.filter((e) => e.id !== id),
       wires: state.wires.filter((w) => w.from.nodeId !== id && w.to.nodeId !== id),
     })),
 
@@ -114,6 +158,8 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
     set({
       controllers: data.controllers || [],
       receivers: data.receivers || [],
+      differentials: data.differentials || [],
+      ethernetSwitches: data.ethernetSwitches || [],
       powerSupplies: data.powerSupplies || [],
       wires: data.wires || [],
       labels: data.labels || [],
@@ -124,6 +170,8 @@ export const useDiagramStore = create<DiagramStore>((set, get) => ({
     return {
       controllers: state.controllers,
       receivers: state.receivers,
+      differentials: state.differentials,
+      ethernetSwitches: state.ethernetSwitches,
       powerSupplies: state.powerSupplies,
       wires: state.wires,
       labels: state.labels,

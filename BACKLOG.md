@@ -202,6 +202,29 @@
 
 ---
 
+### Issue #15: Ethernet Cable Porting and Underground Runs
+**Status:** 🔵 To Do
+**Priority:** Low
+**Description:** Track physical ethernet cable runs from house to yard for "day of install" visual mapping.
+
+**Expected Behavior:**
+- Add ethernet cable objects to represent physical runs
+- Track conduit/underground paths
+- Show cable entry/exit points (house → controllers → receivers)
+- Label cables with length and routing notes
+- Distinguish between: house network → switch → controllers, and controller → differential → receivers
+- Color-code by cable type (Cat5e, Cat6, outdoor-rated, etc.)
+- Help plan physical installation logistics
+
+**Use Case:**
+Creating a physical installation map showing:
+- Where ethernet enters/exits buildings
+- Underground conduit routes
+- Cable lengths needed for shopping
+- Installation sequence planning
+
+---
+
 ## 🐛 Known Bugs
 
 ### Bug #1: Nodes Overlap on Creation
