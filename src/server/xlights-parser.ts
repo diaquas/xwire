@@ -137,17 +137,14 @@ export class XLightsParser {
               break;
 
             case 'Custom':
-              // Custom: Parse CustomModel data first (most accurate)
-              if (model.CustomModel?.[0]) {
-                const customData = model.CustomModel[0]._ || model.CustomModel[0];
-                if (typeof customData === 'string') {
-                  // CustomModel data is a grid: rows separated by semicolons, columns by commas
-                  // Each cell contains a pixel index (or is empty)
-                  // Count unique pixel indices to get total pixel count
-                  const cells = customData.split(/[;,]/).filter(cell => cell.trim() !== '');
-                  const uniquePixels = new Set(cells.map(c => parseInt(c.trim(), 10))).size;
-                  pixelCount = uniquePixels;
-                }
+              // Custom: CustomModel data is stored in attrs.CustomModel (not model.CustomModel)
+              if (attrs.CustomModel && typeof attrs.CustomModel === 'string') {
+                // CustomModel data is a grid: rows separated by semicolons, columns by commas
+                // Each cell contains a pixel index (or is empty)
+                // Count unique pixel indices to get total pixel count
+                const cells = attrs.CustomModel.split(/[;,]/).filter(cell => cell.trim() !== '');
+                const uniquePixels = new Set(cells.map(c => parseInt(c.trim(), 10))).size;
+                pixelCount = uniquePixels;
               }
 
               // Fallback: Try parm1 if CustomModel parsing failed
