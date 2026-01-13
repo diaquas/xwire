@@ -64,11 +64,31 @@ export class XLightsParser {
           continue;
         }
 
+        // Parse pixel count - different model types store this differently
+        let pixelCount = 0;
+        const displayAs = attrs.DisplayAs || '';
+
+        // For most models, parm2 is pixel count
+        // But for some types (like Poly Line), we need to look at other params
+        if (attrs.parm2) {
+          pixelCount = parseInt(attrs.parm2, 10);
+        } else if (attrs.parm1) {
+          pixelCount = parseInt(attrs.parm1, 10);
+        }
+
+        // Fallback: calculate from string count and pixels per string
+        if (!pixelCount && attrs.parm1 && attrs.parm3) {
+          const stringCount = parseInt(attrs.parm1, 10) || 0;
+          const pixelsPerString = parseInt(attrs.parm3, 10) || 0;
+          pixelCount = stringCount * pixelsPerString;
+        }
+
         const modelInfo = {
           name: attrs.name || attrs.Name,
           controller: controllerName,
           startChannel: parseInt(attrs.StartChannel || '0', 10),
-          pixelCount: parseInt(attrs.parm2 || attrs.parm1 || '0', 10), // parm2 is usually pixel count
+          pixelCount: pixelCount,
+          displayAs: displayAs,
           protocol: model.ControllerConnection?.[0]?.$?.Protocol || 'ws2811',
         };
 
@@ -107,6 +127,12 @@ export class XLightsParser {
     for (const ctrlName in controllerInfo.controllers) {
       const ctrl = controllerInfo.controllers[ctrlName];
       console.log(`  ${ctrlName}: ${ctrl.totalModels} models, channels ${ctrl.channelRanges[0]}-${ctrl.channelRanges[1]}`);
+
+      // Debug: Show first 3 models for each controller
+      const sampleModels = ctrl.models.slice(0, 3);
+      sampleModels.forEach((m: any) => {
+        console.log(`    - ${m.name}: ch ${m.startChannel}, ${m.pixelCount} pixels (${m.displayAs})`);
+      });
     }
 
     return controllerInfo;
