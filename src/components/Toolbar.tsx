@@ -460,9 +460,11 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
       console.log(`  ${key}: ${portStats[key]} models`);
     });
 
-    // Group models by (Port, SmartRemote) - each unique combination = 1 receiver
+    // Group models by (Differential Port, SmartRemote) - each unique combination = 1 receiver
+    // xLights Port numbers (1-171) map to 16 differential ports via: ((port - 1) % 16) + 1
     // Only include models that have BOTH port and smartRemote defined
     const receiverGroups: { [key: string]: any[] } = {};
+    const NUM_DIFFERENTIAL_PORTS = 16;
 
     validModels.forEach(model => {
       // Skip models without port/smartRemote info
@@ -471,12 +473,26 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
         return;
       }
 
-      const key = `${model.port}-${model.smartRemote}`;
+      // Map xLights port to differential port (1-16)
+      const differentialPort = ((model.port - 1) % NUM_DIFFERENTIAL_PORTS) + 1;
+      const key = `${differentialPort}-${model.smartRemote}`;
 
       if (!receiverGroups[key]) {
         receiverGroups[key] = [];
       }
       receiverGroups[key].push(model);
+    });
+
+    console.log('\nMapping xLights ports to differential ports (modulo 16):');
+    const portMapping: { [xlPort: number]: number } = {};
+    validModels.forEach(model => {
+      if (model.port && !portMapping[model.port]) {
+        const diffPort = ((model.port - 1) % NUM_DIFFERENTIAL_PORTS) + 1;
+        portMapping[model.port] = diffPort;
+      }
+    });
+    Object.keys(portMapping).sort((a, b) => parseInt(a) - parseInt(b)).forEach(xlPort => {
+      console.log(`  xLights Port ${xlPort} → Differential Port ${portMapping[parseInt(xlPort)]}`);
     });
 
     // Sort receiver keys for consistent ordering
@@ -488,12 +504,12 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
       return remoteA - remoteB;
     });
 
-    console.log(`Found ${sortedKeys.length} unique receivers (Port-SmartRemote combinations):`);
+    console.log(`\nFound ${sortedKeys.length} unique receivers (Differential Port - SmartRemote combinations):`);
     sortedKeys.forEach(key => {
-      const [port, remote] = key.split('-');
+      const [diffPort, remote] = key.split('-');
       const modelCount = receiverGroups[key].length;
       const totalPixels = receiverGroups[key].reduce((sum, m) => sum + (m.pixelCount || 0), 0);
-      console.log(`  Port ${port}, SmartRemote ${remote}: ${modelCount} models, ${totalPixels}px`);
+      console.log(`  Differential Port ${diffPort}, SmartRemote ${remote}: ${modelCount} models, ${totalPixels}px`);
     });
 
     // Create receivers and distribute models into 4 ports per receiver
@@ -501,7 +517,9 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
     const maxPixelsPerPort = 1024;
 
     sortedKeys.forEach((key, idx) => {
-      const [differentialPort, smartRemote] = key.split('-');
+      const [differentialPortStr, smartRemoteStr] = key.split('-');
+      const differentialPort = parseInt(differentialPortStr);
+      const smartRemote = parseInt(smartRemoteStr);
       const receiverModels = receiverGroups[key];
       const receiverNumber = idx + 1;
 
@@ -513,8 +531,8 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
         name: `Receiver ${receiverNumber}`,
         dipSwitch: String(idx).padStart(4, '0'),
         universe: universe,
-        differentialPort: parseInt(differentialPort),
-        smartRemote: parseInt(smartRemote),
+        differentialPort: differentialPort,
+        smartRemote: smartRemote,
         ports: [
           { id: `p1-${receiverNumber}`, name: 'Port 1', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
           { id: `p2-${receiverNumber}`, name: 'Port 2', maxPixels: maxPixelsPerPort, currentPixels: 0, models: [] },
