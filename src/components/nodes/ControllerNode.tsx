@@ -22,8 +22,9 @@ export const ControllerNode = memo(({ data }: NodeProps<ControllerNodeData>) => 
   const totalMaxPixels = controller.ports.reduce((sum, port) => sum + port.maxPixels, 0);
   const totalCurrentPixels = controller.ports.reduce((sum, port) => sum + port.currentPixels, 0);
 
-  // Calculate differential outputs for HinksPix (approx 4 receivers per differential jack)
-  const differentialCount = isHinksPix ? Math.ceil(controller.ports.length / 4) : 0;
+  // TODO: Make this configurable per controller
+  // For now, hardcoded to user's setup: 4 differential boards × 4 ports each = 16 differential outputs
+  const differentialCount = isHinksPix ? 16 : 0;
 
   return (
     <div
