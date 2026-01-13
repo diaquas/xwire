@@ -66,11 +66,49 @@ app.post('/api/xlights/parse', async (req, res) => {
   }
 
   try {
+    console.log('=== PARSING XLIGHTS FILE ===');
+    console.log('File path:', filePath);
     const controllers = await parser.parseNetworkFile(filePath);
+    console.log('Parsed controllers:', controllers.length);
     currentControllers = controllers;
     res.json(controllers);
   } catch (error) {
-    res.status(500).json({ error: 'Error parsing xLights file' });
+    console.error('Parse error:', error);
+    res.status(500).json({ error: 'Error parsing xLights file', details: String(error) });
+  }
+});
+
+// Debug endpoint to see raw XML structure
+app.post('/api/xlights/debug', async (req, res) => {
+  const { filePath } = req.body;
+
+  if (!filePath) {
+    return res.status(400).json({ error: 'filePath is required' });
+  }
+
+  try {
+    const xmlContent = await fs.readFile(filePath, 'utf-8');
+    const { parseString } = await import('xml2js');
+
+    parseString(xmlContent, (err: any, result: any) => {
+      if (err) {
+        return res.status(500).json({ error: 'XML parse error', details: String(err) });
+      }
+
+      console.log('=== RAW XML STRUCTURE ===');
+      console.log(JSON.stringify(result, null, 2));
+
+      res.json({
+        structure: result,
+        rootKeys: Object.keys(result),
+        hasNetworks: !!result.Networks,
+        hasController: result.Networks ? !!result.Networks.Controller : false,
+        controllerCount: result.Networks?.Controller ? result.Networks.Controller.length : 0,
+      });
+    });
+  } catch (error) {
+    console.error('Debug error:', error);
+    res.status(500).json({ error: 'Error reading file', details: String(error) });
   }
 });
 

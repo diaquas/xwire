@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -41,8 +41,18 @@ const getWireColor = (color: WireColor): string => {
 };
 
 export const DiagramCanvas = () => {
-  const { controllers, receivers, powerSupplies, labels, wires, addWire } =
-    useDiagramStore();
+  const {
+    controllers,
+    receivers,
+    powerSupplies,
+    labels,
+    wires,
+    addWire,
+    updateController,
+    updateReceiver,
+    updatePowerSupply,
+    updateLabel,
+  } = useDiagramStore();
 
   // Convert our data to React Flow nodes
   const initialNodes: Node[] = useMemo(() => {
@@ -108,6 +118,16 @@ export const DiagramCanvas = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
+  // Sync nodes when store changes
+  useEffect(() => {
+    setNodes(initialNodes);
+  }, [initialNodes, setNodes]);
+
+  // Sync edges when store changes
+  useEffect(() => {
+    setEdges(initialEdges);
+  }, [initialEdges, setEdges]);
+
   const onConnect = useCallback(
     (connection: Connection) => {
       const newWire = {
@@ -143,6 +163,25 @@ export const DiagramCanvas = () => {
     [addWire, setEdges]
   );
 
+  // Update store when nodes are dragged
+  const onNodeDragStop = useCallback(
+    (_event: any, node: Node) => {
+      const nodeType = node.type;
+      const position = node.position;
+
+      if (nodeType === 'controller') {
+        updateController(node.id, { position });
+      } else if (nodeType === 'receiver') {
+        updateReceiver(node.id, { position });
+      } else if (nodeType === 'powerSupply') {
+        updatePowerSupply(node.id, { position });
+      } else if (nodeType === 'label') {
+        updateLabel(node.id, { position });
+      }
+    },
+    [updateController, updateReceiver, updatePowerSupply, updateLabel]
+  );
+
   return (
     <div style={{ width: '100%', height: '100vh' }}>
       <ReactFlow
@@ -151,6 +190,7 @@ export const DiagramCanvas = () => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeDragStop={onNodeDragStop}
         nodeTypes={nodeTypes}
         connectionLineType={ConnectionLineType.SmoothStep}
         fitView
