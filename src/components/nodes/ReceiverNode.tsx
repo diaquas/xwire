@@ -53,12 +53,11 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
         background: '#C6F6D5',
         minWidth: '380px',
         maxWidth: '500px',
+        position: 'relative',
       }}
     >
-      <Handle type="target" position={Position.Left} />
-      <Handle type="source" position={Position.Right} />
-      <Handle type="source" position={Position.Bottom} />
-      <Handle type="target" position={Position.Top} />
+      <Handle type="target" position={Position.Left} id="receiver-input" />
+      <Handle type="target" position={Position.Top} id="receiver-input-top" />
 
       {/* Receiver name - editable on double-click */}
       {isEditing ? (
@@ -101,13 +100,27 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
         style={{
           fontSize: '10px',
           color: '#2F855A',
-          marginBottom: '8px',
+          marginBottom: '12px',
           fontStyle: 'italic',
-          borderBottom: '1px solid #9AE6B4',
-          paddingBottom: '4px',
+          borderBottom: '2px solid #9AE6B4',
+          paddingBottom: '8px',
         }}
       >
         {hierarchyText}
+      </div>
+
+      {/* Ports section header */}
+      <div
+        style={{
+          fontSize: '9px',
+          color: '#2F855A',
+          marginBottom: '6px',
+          fontWeight: 'bold',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+        }}
+      >
+        Ports
       </div>
 
       {receiver.ports.length > 0 && (
@@ -124,6 +137,9 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
               ? `${receiver.differentialPortNumber}:${receiverNumber}:${portNumber}`
               : `${receiverNumber}:${portNumber}`;
 
+            // Calculate handle position for this port (evenly spaced at bottom)
+            const handlePosition = ((portIdx + 1) / (receiver.ports.length + 1)) * 100;
+
             return (
               <div
                 key={port.id}
@@ -134,8 +150,24 @@ export const ReceiverNode = memo(({ data }: NodeProps<ReceiverNodeData>) => {
                   border: isOverBudget ? '2px solid #E53E3E' : isNearLimit ? '2px solid #DD6B20' : '1px solid #E2E8F0',
                   minWidth: '85px',
                   flex: '1 1 auto',
+                  position: 'relative',
                 }}
               >
+                {/* Individual handle for this specific port */}
+                <Handle
+                  type="source"
+                  position={Position.Bottom}
+                  id={port.id}
+                  style={{
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: isOverBudget ? '#E53E3E' : isNearLimit ? '#DD6B20' : '#48BB78',
+                    width: '10px',
+                    height: '10px',
+                    border: '2px solid #22543D',
+                    bottom: '-5px',
+                  }}
+                />
                 <div style={{ fontWeight: 'bold', marginBottom: '4px', textAlign: 'center', fontSize: '11px' }}>
                   <div title={`Address: ${fullAddress}`}>{portNumber}</div>
                   <div style={{ fontSize: '9px', fontWeight: 'normal', color: '#666' }}>({fullAddress})</div>

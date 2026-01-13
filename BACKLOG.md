@@ -203,6 +203,51 @@
 
 ---
 
+### Issue #17: Drag-and-Drop Model Management
+**Status:** 🟢 To Do
+**Priority:** High
+**Description:** Enable drag-and-drop functionality for models to dynamically manage port assignments and pixel budgets.
+
+**Current Behavior:**
+- Models are displayed as text within receiver ports
+- Models are statically assigned during import
+- No ability to move models between ports
+- No real-time budget updates when reorganizing
+
+**Expected Behavior:**
+- Models appear as separate draggable nodes/objects on canvas
+- Drag models from one port to another
+- Automatically update pixel budgets as models are moved
+- Visual feedback when dragging (highlight target port, show if over budget)
+- When dropping on port, models "stack" (pushed up/down to make room)
+- Ability to reorder models within a port (drag up/down)
+- Real-time calculation shows budget impact before releasing drag
+- Undo/redo support for model moves
+
+**Architecture Requirements:**
+- Each model becomes its own React Flow node
+- Models visually grouped/positioned near their assigned port
+- Port nodes separate from receiver node (already implemented)
+- Differential ports have individual handles (already implemented)
+- Receiver ports have individual handles (already implemented)
+- Wire connections from differential port → receiver port → model
+
+**Use Cases:**
+- Planning pixel layout before physical installation
+- Experimenting with different model arrangements
+- Balancing pixel load across ports
+- Quickly reorganizing when adding/removing models
+- Visual "what-if" scenarios for layout changes
+
+**Implementation Phases:**
+1. Phase 1: Create ModelNode component (draggable node type)
+2. Phase 2: Add drop zones on receiver ports
+3. Phase 3: Implement drag-and-drop with budget calculations
+4. Phase 4: Add model stacking/reordering within ports
+5. Phase 5: Add undo/redo and visual feedback
+
+---
+
 ## 🔵 Nice-to-Have Features
 
 ### Issue #10: Multi-Page Diagrams

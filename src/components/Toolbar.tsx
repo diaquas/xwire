@@ -320,6 +320,9 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
           const portIndex = (differentialPortNumber - 1) % 4;
           const nearestDiff = differentials[diffIndex];
 
+          // Get the specific differential port ID (e1, e2, e3, or e4)
+          const diffPortId = nearestDiff.ports[portIndex].id;
+
           // For now, assign all receivers as receiver #0 on their differential port
           // (daisy-chaining with multiple receivers per port will be implemented later)
           const receiverNumber = 0;
@@ -338,11 +341,12 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange }: ToolbarProps) 
 
           addReceiver(receiver);
 
+          // Connect wire from specific differential port to receiver input
           addWire({
             id: `wire-diff-rec-${Date.now()}-${idx}`,
             color: 'blue',
-            from: { nodeId: nearestDiff.id },
-            to: { nodeId: receiverId },
+            from: { nodeId: nearestDiff.id, portId: diffPortId },
+            to: { nodeId: receiverId, portId: 'receiver-input' },
             label: 'CAT5',
           });
         });

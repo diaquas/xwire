@@ -17,11 +17,10 @@ export const DifferentialNode = memo(({ data }: NodeProps<DifferentialNodeData>)
         borderRadius: '8px',
         background: '#F3E8FF',
         minWidth: '180px',
+        position: 'relative',
       }}
     >
       <Handle type="target" position={Position.Left} />
-      <Handle type="source" position={Position.Right} />
-      <Handle type="source" position={Position.Bottom} />
       <Handle type="target" position={Position.Top} />
 
       <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#553C9A' }}>
@@ -33,23 +32,46 @@ export const DifferentialNode = memo(({ data }: NodeProps<DifferentialNodeData>)
 
       {differential.ports.length > 0 && (
         <div style={{ fontSize: '10px' }}>
-          {differential.ports.map((port) => (
-            <div
-              key={port.id}
-              style={{
-                padding: '3px 5px',
-                margin: '2px 0',
-                background: 'white',
-                borderRadius: '3px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '9px',
-              }}
-            >
-              <span>🔌 {port.name}</span>
-              <span style={{ color: '#3182CE' }}>Ethernet</span>
-            </div>
-          ))}
+          {differential.ports.map((port, idx) => {
+            // Calculate position for each port handle (evenly spaced)
+            const portPosition = ((idx + 1) / (differential.ports.length + 1)) * 100;
+
+            return (
+              <div key={port.id}>
+                {/* Individual handle for this specific port */}
+                <Handle
+                  type="source"
+                  position={Position.Right}
+                  id={port.id}
+                  style={{
+                    top: `${portPosition}%`,
+                    background: '#805AD5',
+                    width: '12px',
+                    height: '12px',
+                    border: '2px solid #553C9A',
+                  }}
+                />
+
+                {/* Port display */}
+                <div
+                  style={{
+                    padding: '4px 6px',
+                    margin: '4px 0',
+                    background: 'white',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '10px',
+                    border: '1px solid #D6BCFA',
+                  }}
+                >
+                  <span style={{ fontWeight: 'bold', color: '#553C9A' }}>🔌 {port.name}</span>
+                  <span style={{ color: '#3182CE', fontSize: '8px' }}>CAT5</span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
