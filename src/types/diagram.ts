@@ -28,6 +28,7 @@ export interface Receiver {
   name: string;
   customName?: string; // User-editable custom name
   dipSwitch: string;
+  differentialPortNumber?: number; // Which differential port (1-16) this receiver connects to
   ports: Port[];
   position: { x: number; y: number };
   controllerConnection?: string;
