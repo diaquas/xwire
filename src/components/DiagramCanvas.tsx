@@ -173,14 +173,15 @@ export const DiagramCanvas = ({ selectedWireColor, autoSnapEnabled }: DiagramCan
       });
     });
 
-    differentialPorts.forEach((differentialPort) => {
-      nodes.push({
-        id: differentialPort.id,
-        type: 'differentialPort',
-        position: differentialPort.position,
-        data: { differentialPort },
-      });
-    });
+    // DifferentialPorts are data-only now, not rendered (Differential boards are rendered instead)
+    // differentialPorts.forEach((differentialPort) => {
+    //   nodes.push({
+    //     id: differentialPort.id,
+    //     type: 'differentialPort',
+    //     position: differentialPort.position,
+    //     data: { differentialPort },
+    //   });
+    // });
 
     ethernetSwitches.forEach((ethernetSwitch) => {
       nodes.push({

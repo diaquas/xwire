@@ -314,25 +314,16 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
         });
         console.log('======================\n');
 
-        // Create DifferentialPort nodes for each unique differential port
+        // Create DifferentialPort nodes for each unique differential port (data layer)
         const differentialPorts: Map<number, DifferentialPort> = new Map();
         const maxPixelsPerPort = 1024;
 
-        // Horizontal topology layout
         const sortedPorts = Object.keys(receiversByDiffPort)
           .map(p => parseInt(p, 10))
           .sort((a, b) => a - b);
 
-        // Calculate horizontal centering for differential ports
-        const totalDiffPorts = sortedPorts.length;
-        const diffPortSpacing = 400; // Horizontal spacing between differential columns
-        const diffStartX = centerX - ((totalDiffPorts - 1) * diffPortSpacing) / 2; // Center the spread
-
-        sortedPorts.forEach((portNumber, index) => {
-          // Spread differential ports horizontally below controller
-          const diffPortX = diffStartX + (index * diffPortSpacing);
-          const diffPortY = centerY + 300; // All differentials at same Y level below controller
-
+        // Create all DifferentialPort nodes (not directly rendered)
+        sortedPorts.forEach((portNumber) => {
           const diffPortId = `diff-port-${Date.now()}-${portNumber}`;
 
           const differentialPort: DifferentialPort = {
@@ -347,40 +338,96 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
               { id: `shared-p4-${portNumber}`, name: 'Port 4', maxPixels: maxPixelsPerPort, currentPixels: 0 },
             ],
             connectedReceivers: [],
-            position: { x: diffPortX, y: diffPortY },
+            position: { x: 0, y: 0 }, // Position not used for rendering
           };
 
           addDifferentialPort(differentialPort);
           differentialPorts.set(portNumber, differentialPort);
-
-          // Wire from controller to differential port (no label for cleaner diagram)
-          addWire({
-            id: `wire-ctrl-diffport-${Date.now()}-${portNumber}`,
-            color: 'blue',
-            from: { nodeId: controllerId },
-            to: { nodeId: diffPortId },
-            label: '',
-          });
         });
 
-        // Create receivers and wire them to differential ports
-        // Position each receiver in a vertical column below its differential port
-        const receiverVerticalSpacing = 200; // Vertical spacing between stacked receivers
-        const receiversStartY = centerY + 300 + 200; // Start below differentials
+        // Create 4 Differential boards (UI layer) - each board contains 4 ports
+        // Board 1: ports 1-4, Board 2: ports 5-8, Board 3: ports 9-12, Board 4: ports 13-16
+        const boardCount = 4;
+        const boardSpacing = 400;
+        const boardStartX = centerX - ((boardCount - 1) * boardSpacing) / 2;
+        const boardY = centerY + 300;
 
-        sortedPorts.forEach((differentialPortNumber, diffIndex) => {
+        const differentialBoards: Map<number, Differential> = new Map();
+
+        for (let boardNum = 1; boardNum <= boardCount; boardNum++) {
+          // Determine which ports belong to this board
+          const startPort = (boardNum - 1) * 4 + 1;
+          const endPort = startPort + 3;
+          const boardPortIds: string[] = [];
+
+          // Find DifferentialPort IDs for this board
+          for (let portNum = startPort; portNum <= endPort; portNum++) {
+            const port = differentialPorts.get(portNum);
+            if (port) {
+              boardPortIds.push(port.id);
+            }
+          }
+
+          // Only create board if it has ports
+          if (boardPortIds.length > 0) {
+            const boardX = boardStartX + ((boardNum - 1) * boardSpacing);
+            const boardId = `diff-board-${Date.now()}-${boardNum}`;
+
+            const board: Differential = {
+              id: boardId,
+              name: `Differential ${boardNum}`,
+              boardNumber: boardNum,
+              differentialPorts: boardPortIds,
+              controllerConnection: controllerId,
+              position: { x: boardX, y: boardY },
+            };
+
+            addDifferential(board);
+            differentialBoards.set(boardNum, board);
+
+            // Wire from controller to board
+            addWire({
+              id: `wire-ctrl-board-${Date.now()}-${boardNum}`,
+              color: 'blue',
+              from: { nodeId: controllerId },
+              to: { nodeId: boardId },
+              label: '',
+            });
+          }
+        }
+
+        // Create receivers and wire them to differential boards
+        // Position receivers below their respective board
+        const receiverVerticalSpacing = 200; // Vertical spacing between stacked receivers
+        const receiversStartY = boardY + 250; // Start below differential boards
+
+        // Track receivers per board for positioning
+        const receiversPerBoard: Map<number, number> = new Map();
+        for (let i = 1; i <= boardCount; i++) {
+          receiversPerBoard.set(i, 0);
+        }
+
+        sortedPorts.forEach((differentialPortNumber) => {
           const receiversInChain = receiversByDiffPort[differentialPortNumber];
           const differentialPort = differentialPorts.get(differentialPortNumber)!;
 
+          // Determine which board this port belongs to (ports 1-4 → board 1, 5-8 → board 2, etc.)
+          const boardNumber = Math.ceil(differentialPortNumber / 4);
+          const board = differentialBoards.get(boardNumber);
+
+          if (!board) return;
+
           const chainReceiverIds: string[] = [];
 
-          // Position receivers in a vertical column directly below this differential
+          // Position receivers in a vertical column directly below this board
           receiversInChain.forEach((receiverData: any, chainIdx: number) => {
             const receiverNumber = chainIdx; // 0, 1, 2, ... in the daisy chain
 
-            // Position in column: same X as differential, stacked vertically
-            const recX = differentialPort.position.x; // Align with differential
-            const recY = receiversStartY + (chainIdx * receiverVerticalSpacing);
+            // Position in column: same X as board, stacked vertically
+            const currentReceiverIndex = receiversPerBoard.get(boardNumber) || 0;
+            const recX = board.position.x; // Align with board
+            const recY = receiversStartY + (currentReceiverIndex * receiverVerticalSpacing);
+            receiversPerBoard.set(boardNumber, currentReceiverIndex + 1);
 
             const timestamp = Date.now();
             const receiverId = `receiver-${timestamp}-${differentialPortNumber}-${chainIdx}`;
@@ -394,7 +441,7 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
               ports: receiverData.ports,
               position: { x: recX, y: recY },
               controllerConnection: controllerId,
-              differentialConnection: differentialPort.id,
+              differentialConnection: board.id,
             };
 
             addReceiver(receiver);
@@ -403,11 +450,11 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
             differentialPort.connectedReceivers.push(receiverId);
 
             if (chainIdx === 0) {
-              // First receiver: connect from differential port (no label)
+              // First receiver: connect from differential board (no label)
               addWire({
-                id: `wire-diffport-rec-${timestamp}-${differentialPortNumber}-${chainIdx}`,
+                id: `wire-board-rec-${timestamp}-${differentialPortNumber}-${chainIdx}`,
                 color: 'blue',
-                from: { nodeId: differentialPort.id },
+                from: { nodeId: board.id },
                 to: { nodeId: receiverId, portId: 'receiver-input' },
                 label: '',
               });

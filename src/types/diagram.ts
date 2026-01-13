@@ -49,7 +49,8 @@ export interface Differential {
   id: string;
   name: string;
   controllerConnection?: string; // Which controller this differential belongs to
-  ports: Port[]; // 4 ethernet ports (CAT5 outputs to receivers)
+  boardNumber: number; // 1-4 for HinksPix PRO V3 (4 boards total)
+  differentialPorts: string[]; // IDs of the 4 DifferentialPort nodes in this board
   position: { x: number; y: number };
 }
 
