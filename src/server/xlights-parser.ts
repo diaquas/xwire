@@ -224,6 +224,56 @@ export class XLightsParser {
           console.log(`  ControllerConnection for ${modelName}:`, controllerConn);
         }
 
+        // Handle models with multiple strands/strings (e.g., CustomStrings="2")
+        const customStrings = attrs.CustomStrings ? parseInt(attrs.CustomStrings, 10) : 1;
+
+        if (customStrings > 1) {
+          // Model uses multiple strings - create separate entries for each string
+          for (let stringIdx = 1; stringIdx <= customStrings; stringIdx++) {
+            const stringStartAttr = `String${stringIdx}`;
+            const stringStart = attrs[stringStartAttr] ? parseInt(attrs[stringStartAttr], 10) : null;
+
+            // Calculate pixels for this string
+            let stringPixelCount = 0;
+            if (stringStart !== null) {
+              const nextStringAttr = `String${stringIdx + 1}`;
+              const nextStringStart = attrs[nextStringAttr] ? parseInt(attrs[nextStringAttr], 10) : null;
+
+              if (nextStringStart !== null) {
+                // Pixels from this string start to next string start - 1
+                stringPixelCount = nextStringStart - stringStart;
+              } else {
+                // Last string: from string start to total pixel count
+                stringPixelCount = pixelCount - stringStart + 1;
+              }
+            }
+
+            const stringModelInfo = {
+              name: `${attrs.name || attrs.Name} (String ${stringIdx})`,
+              controller: controllerName,
+              startChannel: startChannel,
+              pixelCount: stringPixelCount,
+              displayAs: displayAs,
+              protocol: controllerConn.Protocol || 'ws2811',
+              port: port ? port + (stringIdx - 1) : null, // Each string goes to next consecutive port
+              smartRemote: smartRemote,
+            };
+
+            controllerInfo.models.push(stringModelInfo);
+
+            if (!controllerInfo.controllers[controllerName]) {
+              controllerInfo.controllers[controllerName] = {
+                models: [],
+                channelRanges: []
+              };
+            }
+            controllerInfo.controllers[controllerName].models.push(stringModelInfo);
+          }
+
+          // Skip adding the combined model entry
+          continue;
+        }
+
         const modelInfo = {
           name: attrs.name || attrs.Name,
           controller: controllerName,
