@@ -78,9 +78,9 @@ export class XLightsParser {
         const displayAs = attrs.DisplayAs || '';
         const modelName = attrs.name || attrs.Name || 'Unknown';
 
-        // DEBUG: Log models with "Arch" or "Pumpkin" in the name or DisplayAs
+        // DEBUG: Log models with "Arch", "Pumpkin", or "Forest" in the name or DisplayAs
         if (modelName.toLowerCase().includes('arch') || displayAs.toLowerCase().includes('arch') ||
-            modelName.toLowerCase().includes('pumpkin')) {
+            modelName.toLowerCase().includes('pumpkin') || modelName.toLowerCase().includes('forest')) {
           console.log(`DEBUG Model: ${modelName}`, {
             displayAs: displayAs,
             parm1: attrs.parm1,
@@ -154,18 +154,17 @@ export class XLightsParser {
               break;
 
             default:
-              // Generic fallback: try parm2, then parm1
-              if (attrs.parm2) {
-                pixelCount = parseInt(attrs.parm2, 10);
-              } else if (attrs.parm1) {
-                pixelCount = parseInt(attrs.parm1, 10);
-              }
-
-              // Last fallback: calculate from string count and pixels per string
-              if (!pixelCount && attrs.parm1 && attrs.parm3) {
+              // Generic fallback: prioritize strand calculation if both parm1 and parm3 exist
+              if (attrs.parm1 && attrs.parm3) {
                 const stringCount = parseInt(attrs.parm1, 10) || 0;
                 const pixelsPerString = parseInt(attrs.parm3, 10) || 0;
                 pixelCount = stringCount * pixelsPerString;
+              }
+              // Otherwise try parm2, then parm1
+              else if (attrs.parm2) {
+                pixelCount = parseInt(attrs.parm2, 10);
+              } else if (attrs.parm1) {
+                pixelCount = parseInt(attrs.parm1, 10);
               }
           }
         }
