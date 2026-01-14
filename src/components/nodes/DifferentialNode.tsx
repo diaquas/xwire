@@ -26,7 +26,7 @@ export const DifferentialNode = memo(({ data }: NodeProps<DifferentialNodeData>)
         borderRadius: '8px',
         background: '#E9D8FD',
         width: '520px', // Wide layout
-        minHeight: '120px',
+        minHeight: '200px', // Taller to fit receiver port breakdown
         position: 'relative',
       }}
     >
@@ -47,8 +47,14 @@ export const DifferentialNode = memo(({ data }: NodeProps<DifferentialNodeData>)
         <Handle type="target" position={Position.Top} id="diff-board-input" style={{ opacity: 0 }} />
       </div>
 
-      {/* Board title */}
-      <div style={{ fontWeight: 'bold', marginBottom: '12px', color: '#553C9A', fontSize: '16px', textAlign: 'center' }}>
+      {/* Board title - positioned at top */}
+      <div style={{
+        fontWeight: 'bold',
+        color: '#553C9A',
+        fontSize: '16px',
+        textAlign: 'center',
+        marginBottom: '8px',
+      }}>
         {differential.name}
       </div>
 
@@ -65,17 +71,24 @@ export const DifferentialNode = memo(({ data }: NodeProps<DifferentialNodeData>)
           if (!port) return null;
 
           // Calculate total pixels across all receivers on this port
+          // AND breakdown by receiver port number
           let totalPixels = 0;
+          const portBreakdown: { [portNum: number]: number } = { 1: 0, 2: 0, 3: 0, 4: 0 };
+
           port.connectedReceivers.forEach(receiverId => {
             const receiver = receivers.find(r => r.id === receiverId);
             if (receiver) {
               receiver.ports.forEach(p => {
                 totalPixels += p.currentPixels;
+                if (p.portNumber >= 1 && p.portNumber <= 4) {
+                  portBreakdown[p.portNumber] += p.currentPixels;
+                }
               });
             }
           });
 
           const totalMaxPixels = port.sharedPorts.reduce((sum, p) => sum + p.maxPixels, 0);
+          const perPortMax = 1024; // Each receiver port has 1024 max
           const utilization = totalMaxPixels > 0 ? ((totalPixels / totalMaxPixels) * 100).toFixed(0) : '0';
           const isOverCapacity = totalPixels > totalMaxPixels;
           const hasReceivers = port.connectedReceivers.length > 0;
@@ -91,30 +104,61 @@ export const DifferentialNode = memo(({ data }: NodeProps<DifferentialNodeData>)
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '4px',
               }}
             >
               {/* Metadata above square */}
-              <div style={{ textAlign: 'center', minWidth: '90px' }}>
+              <div style={{ textAlign: 'center', minWidth: '100px' }}>
                 {/* Port number */}
-                <div style={{ fontWeight: 'bold', color: '#553C9A', fontSize: '11px', marginBottom: '2px' }}>
+                <div style={{ fontWeight: 'bold', color: '#553C9A', fontSize: '12px', marginBottom: '2px' }}>
                   Port {port.portNumber}
                 </div>
 
-                {/* Pixel count */}
+                {/* Total pixel count */}
                 <div style={{
-                  fontSize: '11px',
+                  fontSize: '12px',
                   fontWeight: 'bold',
                   color: isOverCapacity ? '#C53030' : '#38A169',
-                  marginBottom: '1px'
+                  marginBottom: '2px'
                 }}>
                   {totalPixels}/{totalMaxPixels}
                 </div>
 
                 {/* Receiver count and utilization */}
-                <div style={{ fontSize: '10px', color: '#6B46C1' }}>
+                <div style={{ fontSize: '10px', color: '#6B46C1', marginBottom: '4px' }}>
                   {port.connectedReceivers.length} Rx • {utilization}%
                 </div>
+
+                {/* Receiver port breakdown - only show if there are receivers */}
+                {hasReceivers && (
+                  <div style={{
+                    fontSize: '9px',
+                    color: '#4A5568',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '1px 8px',
+                    background: '#F7FAFC',
+                    borderRadius: '3px',
+                    padding: '3px 4px',
+                    border: '1px solid #E2E8F0',
+                  }}>
+                    {[1, 2, 3, 4].map(pNum => {
+                      const pixels = portBreakdown[pNum];
+                      const isPortOver = pixels > perPortMax;
+                      return (
+                        <div
+                          key={pNum}
+                          style={{
+                            color: isPortOver ? '#C53030' : '#4A5568',
+                            fontWeight: isPortOver ? 'bold' : 'normal',
+                          }}
+                        >
+                          P{pNum}: {pixels}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Connection square - blue if connected, white if empty */}
