@@ -530,6 +530,11 @@ export const Toolbar = ({ selectedWireColor, onWireColorChange, autoSnapEnabled,
     const totalPixels = controllerInfo.models.reduce((sum, model) => sum + (model.pixelCount || 0), 0);
     const totalChannels = totalPixels * 3; // Each pixel uses 3 channels (RGB)
 
+    console.log('\n=== IMPORT SUMMARY ===');
+    console.log('Total Receivers:', totalReceivers);
+    console.log('Total Pixels:', totalPixels);
+    console.log('Total Channels:', totalChannels);
+
     setImportSummary({
       receiverCount: totalReceivers,
       pixelCount: totalPixels,
