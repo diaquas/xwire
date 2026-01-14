@@ -207,6 +207,13 @@ export class XLightsParser {
         const port = controllerConn.Port ? parseInt(controllerConn.Port, 10) : null;
         const smartRemote = controllerConn.SmartRemote ? parseInt(controllerConn.SmartRemote, 10) : null;
 
+        // DEBUG: Log full ControllerConnection for spinner models
+        if (shouldDebug && (modelName.toLowerCase().includes('spinner') ||
+                           modelName.toLowerCase().includes('overlord') ||
+                           modelName.toLowerCase().includes('rosa'))) {
+          console.log(`  ControllerConnection for ${modelName}:`, controllerConn);
+        }
+
         const modelInfo = {
           name: attrs.name || attrs.Name,
           controller: controllerName,
