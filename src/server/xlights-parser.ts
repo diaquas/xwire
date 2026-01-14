@@ -91,11 +91,21 @@ export class XLightsParser {
             parm2: attrs.parm2,
             parm3: attrs.parm3,
             PixelCount: attrs.PixelCount,
+            StringType: attrs.StringType,
+            NumStrings: attrs.NumStrings,
+            StrandsPerString: attrs.StrandsPerString,
             hasCustomModel: !!model.CustomModel,
             modelKeys: Object.keys(model).filter(k => k !== '$').slice(0, 15),
             customModelType: typeof model.CustomModel,
             attrsHasCustomModel: 'CustomModel' in attrs,
           });
+
+          // Log ALL attributes for spinner models to find strand info
+          if (modelName.toLowerCase().includes('spinner') ||
+              modelName.toLowerCase().includes('overlord') ||
+              modelName.toLowerCase().includes('rosa')) {
+            console.log(`  ALL attributes for ${modelName}:`, Object.keys(attrs).filter(k => k.toLowerCase().includes('str') || k.toLowerCase().includes('port')));
+          }
 
           // Log first Arch model structure more deeply
           if (modelName === 'Arch 1') {
