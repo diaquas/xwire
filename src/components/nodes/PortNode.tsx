@@ -35,7 +35,7 @@ export const PortNode = memo(({ data }: NodeProps<PortNodeData>) => {
       <div
         style={{
           position: 'absolute',
-          top: '-38px',
+          top: '-22px',
           left: '50%',
           transform: 'translateX(-50%)',
           fontSize: '9px',
@@ -43,7 +43,7 @@ export const PortNode = memo(({ data }: NodeProps<PortNodeData>) => {
           color: isOverBudget ? '#E53E3E' : isNearLimit ? '#DD6B20' : '#2F855A',
           whiteSpace: 'nowrap',
           background: 'rgba(255, 255, 255, 0.95)',
-          padding: '3px 5px',
+          padding: '2px 4px',
           borderRadius: '4px',
           border: '1px solid #E2E8F0',
           textAlign: 'center',
