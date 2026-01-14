@@ -143,6 +143,11 @@ export class XLightsParser {
               pixelCount = parseInt(attrs.parm2, 10) || 0;
               break;
 
+            case 'Tree 360':
+              // Tree 360: parm2 is the pixel count
+              pixelCount = parseInt(attrs.parm2, 10) || 0;
+              break;
+
             case 'Tree':
               // Tree: Check multiple possible locations
               if (attrs.parm1) {
