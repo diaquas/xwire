@@ -78,9 +78,13 @@ export class XLightsParser {
         const displayAs = attrs.DisplayAs || '';
         const modelName = attrs.name || attrs.Name || 'Unknown';
 
-        // DEBUG: Log models with "Arch", "Pumpkin", or "Forest" in the name or DisplayAs
-        if (modelName.toLowerCase().includes('arch') || displayAs.toLowerCase().includes('arch') ||
-            modelName.toLowerCase().includes('pumpkin') || modelName.toLowerCase().includes('forest')) {
+        // DEBUG: Log specific models for debugging
+        const debugKeywords = ['arch', 'pumpkin', 'forest', 'overlord', 'spinner', 'rosa', 'grande'];
+        const shouldDebug = debugKeywords.some(keyword =>
+          modelName.toLowerCase().includes(keyword) || displayAs.toLowerCase().includes(keyword)
+        );
+
+        if (shouldDebug) {
           console.log(`DEBUG Model: ${modelName}`, {
             displayAs: displayAs,
             parm1: attrs.parm1,
